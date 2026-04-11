@@ -23,6 +23,7 @@ import {
   Dialog, DialogContent, DialogHeader, 
   DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
+import useWebRTC from "@/hooks/useWebRTC";
 
 const socket = io(import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || "http://localhost:5000", {
   transports: ["websocket"],
@@ -49,6 +50,21 @@ export default function ChatPage() {
     },
   });
 
+  // Find other participant
+  const otherParticipant = chat?.participants?.find(p => p._id !== user._id);
+  
+  const {
+    localVideo,
+    remoteVideo,
+    isCalling,
+    callAccepted,
+    receivingCall,
+    callType,
+    initCall,
+    answerCall,
+    endCall,
+  } = useWebRTC(socket, user?._id, otherParticipant?._id);
+
   const { data: initialMessages } = useQuery({
     queryKey: ["messages", chat?._id],
     queryFn: async () => {
@@ -65,17 +81,21 @@ export default function ChatPage() {
   useEffect(() => {
     if (!chat?._id) return;
 
+    socket.emit("register_user", user._id);
     socket.emit("join_chat", chat._id);
 
     const onMessage = (newMsg) => {
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => {
+        if (prev.find(m => m._id === newMsg._id)) return prev;
+        return [...prev, newMsg];
+      });
     };
 
     socket.on("receive_message", onMessage);
     return () => {
       socket.off("receive_message", onMessage);
     };
-  }, [chat?._id]);
+  }, [chat?._id, user._id]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -87,8 +107,12 @@ export default function ChatPage() {
       return res.data;
     },
     onSuccess: (newMsg) => {
+      // Avoid duplications if socket already handled it or state was updated optimistically
+      setMessages((prev) => {
+        if (prev.find(m => m._id === newMsg._id)) return prev;
+        return [...prev, newMsg];
+      });
       socket.emit("send_message", { ...newMsg, chatId: chat._id });
-      setMessages((prev) => [...prev, newMsg]);
       setMsg("");
       setPreview(null);
     },
@@ -134,7 +158,6 @@ export default function ChatPage() {
     sendMsgMutation.mutate({ chatId: chat._id, message: msg, type: "text" });
   };
 
-  const otherParticipant = chat?.participants?.find(p => p._id !== user?._id);
 
   const downloadFile = (url, name) => {
     const link = document.createElement("a");
@@ -249,10 +272,20 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-             <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all">
+             <Button 
+               variant="ghost" 
+               size="icon" 
+               className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
+               onClick={() => initCall('audio')}
+             >
                 <Phone className="w-5 h-5" />
              </Button>
-             <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all">
+             <Button 
+               variant="ghost" 
+               size="icon" 
+               className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
+               onClick={() => initCall('video')}
+             >
                 <VideoIcon className="w-5 h-5" />
              </Button>
              
@@ -282,7 +315,7 @@ export default function ChatPage() {
         <div className="flex-1 bg-muted/20 border-x border-border overflow-y-auto p-6 md:p-10 custom-scrollbar transition-colors duration-300">
           <AnimatePresence>
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-10">
+              <div key="empty-state" className="h-full flex flex-col items-center justify-center text-center px-10">
                 <div className="w-24 h-24 bg-card rounded-[2.5rem] shadow-2xl flex items-center justify-center mb-6 border border-border">
                    <MessageSquare className="w-10 h-10 text-muted-foreground/20" />
                 </div>
@@ -292,10 +325,10 @@ export default function ChatPage() {
                 </p>
               </div>
             ) : (
-              messages.map((m, i) => <MessageBubble key={m._id || i} m={m} />)
+              messages.map((m, i) => <MessageBubble key={m._id || `msg-${i}`} m={m} />)
             )}
-            <div ref={scrollRef} />
           </AnimatePresence>
+          <div ref={scrollRef} className="h-2 w-full invisible" />
         </div>
 
         {/* Input Footer */}
@@ -349,10 +382,10 @@ export default function ChatPage() {
           </form>
         </footer>
 
-        {/* Lightbox / Media Preview */}
         <AnimatePresence>
           {selectedMedia && (
             <motion.div 
+              key="media-lightbox"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -385,6 +418,89 @@ export default function ChatPage() {
                       <Download className="w-6 h-6" /> LOCAL SAVE
                     </Button>
                  </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {(isCalling || receivingCall || callAccepted) && (
+            <motion.div
+              key="call-overlay"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-6"
+            >
+              <div className="relative w-full max-w-4xl aspect-video bg-black rounded-[3rem] overflow-hidden shadow-2xl border border-white/10">
+                {/* Remote Video/Audio */}
+                {callType === 'video' ? (
+                  <video
+                    ref={remoteVideo}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-slate-800 to-slate-900">
+                    <div className="w-32 h-32 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+                      <Phone className="w-16 h-16 text-primary" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white">Audio Call in Progress</h2>
+                    <p className="text-slate-400 font-medium">Connecting with {otherParticipant?.fullName}...</p>
+                    <audio ref={remoteVideo} autoPlay />
+                  </div>
+                )}
+
+                {/* Local Video Thumbnail */}
+                {callType === 'video' && (
+                  <div className="absolute bottom-6 right-6 w-48 aspect-video bg-slate-800 rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl">
+                    <video
+                      ref={localVideo}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                  </div>
+                )}
+
+                {/* Call Controls */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6">
+                  {receivingCall && !callAccepted ? (
+                    <>
+                      <Button
+                        onClick={answerCall}
+                        className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                      >
+                        <Phone className="w-8 h-8" />
+                      </Button>
+                      <Button
+                        onClick={endCall}
+                        className="w-16 h-16 rounded-full bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20"
+                      >
+                        <X className="w-8 h-8" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={endCall}
+                      className="w-16 h-16 rounded-full bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20"
+                    >
+                      <X className="w-8 h-8" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Status Overlay */}
+                {!callAccepted && isCalling && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <div className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/10 flex items-center gap-4">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                      <span className="text-white font-bold">Calling {otherParticipant?.fullName}...</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

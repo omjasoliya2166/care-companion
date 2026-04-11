@@ -17,7 +17,8 @@ const doctorsData = [
     specialization: "Cardiology",
     experience: 15,
     bio: "Dr. Sarah is a senior cardiologist with over 15 years of experience in heart surgery and treatments.",
-    profileImage: "https://images.unsplash.com/photo-1559839734-2b71cc197ec2?auto=format&fit=crop&q=80&w=200&h=200"
+    profileImage: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=200&h=200",
+    consultationFee: 2500
   },
   {
     fullName: "Michael Chen",
@@ -27,7 +28,8 @@ const doctorsData = [
     specialization: "Neurology",
     experience: 12,
     bio: "Specialist in neurological disorders and brain health with a focus on patient-centered care.",
-    profileImage: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200&h=200"
+    profileImage: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200&h=200",
+    consultationFee: 1800
   },
   {
     fullName: "Emily Williams",
@@ -37,7 +39,8 @@ const doctorsData = [
     specialization: "Orthopedics",
     experience: 10,
     bio: "Expert in joint replacement and sports medicine, helping patients regain their mobility.",
-    profileImage: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=200&h=200"
+    profileImage: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=200&h=200",
+    consultationFee: 1500
   },
   {
     fullName: "James Anderson",
@@ -47,8 +50,42 @@ const doctorsData = [
     specialization: "Pediatrics",
     experience: 8,
     bio: "Compassionate pediatrician dedicated to the health and well-being of children from birth to adolescence.",
-    profileImage: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=200&h=200"
-  }
+    profileImage: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=200&h=200",
+    consultationFee: 1200
+  }, 
+  {
+  fullName: "Olivia Bennett",
+  email: "oliviabennett@gmail.com",
+  password: "Olivia@123",
+  role: "doctor",
+  specialization: "Endocrinology",
+  experience: 11,
+  bio: "Specialist in hormonal disorders, diabetes management, and metabolic health with a patient-focused approach.",
+  profileImage: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=200&h=200",
+  consultationFee: 1600
+},
+{
+  fullName: "Daniel Rodriguez",
+  email: "danielrodriguez@gmail.com",
+  password: "Daniel@123",
+  role: "doctor",
+  specialization: "Oncology",
+  experience: 14,
+  bio: "Dedicated oncologist experienced in cancer diagnosis, chemotherapy, and compassionate patient care.",
+  profileImage: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=200&h=200",
+  consultationFee: 3000
+},
+{
+  fullName: "Aisha Khan",
+  email: "aishakhan@gmail.com",
+  password: "Aisha@123",
+  role: "doctor",
+  specialization: "Psychiatry",
+  experience: 9,
+  bio: "Mental health specialist focused on treating anxiety, depression, and behavioral disorders with holistic care.",
+  profileImage: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&q=80&w=200&h=200",
+  consultationFee: 1400
+}
 ];
 
 const seedDoctors = async () => {
@@ -84,7 +121,8 @@ const seedDoctors = async () => {
           specialization: doc.specialization,
           experience: doc.experience,
           bio: doc.bio,
-          profileImage: doc.profileImage
+          profileImage: doc.profileImage,
+          consultationFee: doc.consultationFee || 1500
         });
         await doctorProfile.save();
         console.log(`Created doctor profile for ${doc.fullName}`);

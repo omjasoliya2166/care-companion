@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +40,10 @@ export default function DoctorProfile() {
     consultationFee: 150,
   });
 
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
+  const fileInputRef = useRef(null);
+
   useEffect(() => {
     if (doctor) {
       setFormData({
@@ -48,6 +53,7 @@ export default function DoctorProfile() {
         bio: doctor?.bio || "",
         consultationFee: doctor?.consultationFee || 150,
       });
+      setImagePreview(doctor.profileImage || user?.avatarUrl || "");
     }
   }, [doctor, user]);
 
@@ -60,6 +66,36 @@ export default function DoctorProfile() {
       toast({ title: "Profile Updated Successfully!" });
     } catch (err) {
       toast({ title: "Update Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Preview
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    setImageLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append("profileImage", file);
+      const res = await api.post("/appointments/doctor/profile-image", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImagePreview(res.data.profileImage);
+      
+      // Update AuthContext to reflect new avatar globally
+      setUser(prev => ({ ...prev, avatarUrl: res.data.profileImage }));
+      
+      toast({ title: "Profile Image Updated! 📸" });
+      await refetch();
+    } catch (err) {
+      toast({ title: "Upload Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -101,21 +137,31 @@ export default function DoctorProfile() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden"
         >
-          <div className="h-48 bg-gradient-to-r from-slate-900 to-primary relative overflow-hidden">
+          <div className="h-48 bg-gradient-to-r from-slate-900 to-primary relative">
              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,1),rgba(255,255,255,0))]" />
             <div className="absolute -bottom-20 left-1/2 -translate-x-1/2">
-              <div className="relative">
+              <div className="relative group">
                 <Avatar className="w-40 h-40 border-8 border-white shadow-2xl">
-                  <AvatarImage src={doctor?.profileImage || user?.avatarUrl} />
+                  <AvatarImage src={imagePreview} />
                   <AvatarFallback className="bg-primary/10 text-primary text-4xl font-black">
                     {user?.fullName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
-                {isEditing && (
-                  <button className="absolute bottom-2 right-2 bg-primary p-3 rounded-full shadow-lg border-4 border-white text-white hover:scale-110 transition-transform">
-                    <Edit3 className="w-5 h-5" />
-                  </button>
-                )}
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={imageLoading}
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-4 border-white"
+                >
+                  <Edit3 className="w-8 h-8 text-white" />
+                </button>
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
               </div>
             </div>
           </div>
@@ -217,83 +263,6 @@ export default function DoctorProfile() {
           </div>
         </motion.div>
 
-        {/* Unavailability Management */}
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[3.5rem] p-12 border border-slate-100 shadow-sm"
-        >
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
-             <div>
-               <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4">
-                 <Clock className="w-10 h-10 text-orange-500" /> Manage Available Slots
-               </h2>
-               <p className="text-slate-500 font-medium mt-2">Block off time slots when you are unavailable for consultations.</p>
-             </div>
-             
-             <div className="flex flex-wrap items-end gap-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Target Date</Label>
-                  <Input 
-                    type="date" 
-                    value={newUnavail.date} 
-                    onChange={(e) => setNewUnavail({...newUnavail, date: e.target.value})} 
-                    className="h-12 rounded-xl bg-white border-slate-100 min-w-[180px]"
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Time Slot</Label>
-                  <Select value={newUnavail.time} onValueChange={(v) => setNewUnavail({...newUnavail, time: v})}>
-                    <SelectTrigger className="h-12 rounded-xl bg-white border-slate-100 min-w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={addUnavailability} className="h-12 rounded-xl px-6 bg-orange-500 hover:bg-orange-600 font-black uppercase text-[10px] tracking-widest">
-                  <Plus className="w-4 h-4 mr-2" /> Block Slot
-                </Button>
-             </div>
-           </div>
-
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-             {doctor?.unavailableSlots?.length === 0 ? (
-               <div className="col-span-full py-12 text-center bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                  <Calendar className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                  <p className="font-bold text-slate-400 tracking-tight">No unavailability records found.</p>
-               </div>
-             ) : (
-                <AnimatePresence>
-                  {doctor?.unavailableSlots.map((slot, i) => (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow group"
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Unavailable</p>
-                        <p className="font-black text-slate-800">{new Date(slot.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                        <p className="text-xs font-bold text-slate-500">{slot.time}</p>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeUnavailability(i)}
-                        className="rounded-full text-slate-300 hover:text-destructive hover:bg-destructive/5"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-             )}
-           </div>
-        </motion.div>
       </div>
     </DashboardLayout>
   );

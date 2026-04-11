@@ -53,12 +53,16 @@
   }
 }
 
+html {
+  font-size: 15px; /* Slightly smaller for better fit at 100% zoom */
+}
+
 @layer base {
   * {
     @apply border-border transition-colors duration-200;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased text-base;
   }
 }
 

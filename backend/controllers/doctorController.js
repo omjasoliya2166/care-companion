@@ -123,3 +123,48 @@ export const getUnavailability = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const uploadDoctorProfileImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
+
+    let finalPath = req.file.path;
+    if (!finalPath.startsWith('http')) {
+      finalPath = `${req.protocol}://${req.get('host')}/${finalPath.replace(/\\/g, '/')}`;
+    }
+
+    doctor.profileImage = finalPath;
+    await doctor.save();
+
+    // Also update User model for consistency
+    await User.findByIdAndUpdate(req.user._id, { avatarUrl: finalPath });
+
+    res.json(doctor);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteUnavailability = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const unavailability = await Unavailability.findById(id);
+    if (!unavailability) return res.status(404).json({ message: 'Unavailability record not found' });
+    
+    // Check ownership
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (unavailability.doctorId.toString() !== doctor._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    await Unavailability.findByIdAndDelete(id);
+    res.json({ message: 'Unavailability record deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -29,10 +29,14 @@ export const createPrescription = async (req, res) => {
     await createNotification({
       userId: appointment.patientId._id,
       type: 'prescription_generated',
-      title: 'New Prescription Available 💊',
-      message: `Dr. ${doctor.userId.fullName} has generated a prescription for your appointment. View it in your Prescriptions section.`,
+      title: 'Medicine Prescribed 💊',
+      message: `Dr. ${doctor.userId.fullName} has prescribed medicines. Please complete the payment to view and download your prescription.`,
       meta: { prescriptionId: prescription._id, appointmentId }
     });
+
+    // Ensure appointment visibility is false
+    appointment.isPrescriptionVisible = false;
+    await appointment.save();
 
     res.status(201).json(prescription);
   } catch (error) {

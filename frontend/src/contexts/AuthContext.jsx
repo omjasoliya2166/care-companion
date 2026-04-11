@@ -15,8 +15,12 @@ export function AuthProvider({ children }) {
       if (storedToken) {
         try {
           const response = await api.get('/auth/me');
-          setUser(response.data);
-          setRole(response.data.role);
+          if (response.data) {
+            setUser(response.data);
+            setRole(response.data.role);
+          } else {
+            signOut();
+          }
         } catch (error) {
           console.error("Auth check failed:", error);
           signOut();

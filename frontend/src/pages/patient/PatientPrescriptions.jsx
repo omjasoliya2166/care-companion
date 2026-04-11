@@ -5,13 +5,14 @@ import api from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Pill, Download, FileText, Activity, Clock,
-  Search, Info, UtensilsCrossed, Loader2
+  Search, Info, UtensilsCrossed, Loader2, Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Link } from "react-router-dom";
 
 export default function PatientPrescriptions() {
   const { user } = useAuth();
@@ -43,130 +44,148 @@ export default function PatientPrescriptions() {
 
       // Header background
       pdf.setFillColor(37, 99, 235);
-      pdf.rect(0, 0, pageWidth, 40, "F");
+      pdf.rect(0, 0, pageWidth, 45, "F");
 
       // Hospital name
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
+      pdf.setFontSize(26);
       pdf.setFont("helvetica", "bold");
-      pdf.text("LIONHS Care Hospital", pageWidth / 2, 15, { align: "center" });
-      pdf.setFontSize(10);
+      pdf.text("LIONHS Care Hospital", pageWidth / 2, 18, { align: "center" });
+      
+      pdf.setFontSize(11);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Excellence in Healthcare | www.lionhs.care", pageWidth / 2, 23, { align: "center" });
-      pdf.text("Medical Prescription", pageWidth / 2, 32, { align: "center" });
+      pdf.text("Excellence in Precision Healthcare • Est. 1998", pageWidth / 2, 26, { align: "center" });
+      
+      pdf.setDrawColor(255, 255, 255);
+      pdf.setLineWidth(0.5);
+      pdf.line(pageWidth / 2 - 40, 32, pageWidth / 2 + 40, 32);
+      
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("DIGITAL MEDICAL PRESCRIPTION", pageWidth / 2, 40, { align: "center" });
 
-      y = 50;
+      y = 55;
 
       // Prescription ID & Date
       pdf.setTextColor(100, 116, 139);
       pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Prescription ID: #${presc._id.slice(-8).toUpperCase()}`, 15, y);
-      pdf.text(`Date: ${new Date(presc.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}`, pageWidth - 15, y, { align: "right" });
-      y += 10;
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`REFERENCE ID: #${presc._id.slice(-8).toUpperCase()}`, 15, y);
+      pdf.text(`ISSUED ON: ${new Date(presc.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}`, pageWidth - 15, y, { align: "right" });
+      y += 8;
 
       // Divider
       pdf.setDrawColor(226, 232, 240);
+      pdf.setLineWidth(0.1);
       pdf.line(15, y, pageWidth - 15, y);
-      y += 8;
+      y += 10;
 
       // Patient & Doctor Info
       pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(15, y, (pageWidth - 35) / 2, 28, 3, 3, "F");
-      pdf.roundedRect(pageWidth / 2 + 3, y, (pageWidth - 35) / 2, 28, 3, 3, "F");
+      pdf.roundedRect(15, y, (pageWidth - 35) / 2, 32, 4, 4, "F");
+      pdf.roundedRect(pageWidth / 2 + 3, y, (pageWidth - 35) / 2, 32, 4, 4, "F");
 
-      pdf.setTextColor(99, 102, 241);
+      pdf.setTextColor(37, 99, 235);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "bold");
-      pdf.text("PATIENT DETAILS", 20, y + 8);
-      pdf.text("DOCTOR DETAILS", pageWidth / 2 + 8, y + 8);
+      pdf.text("PATIENT INFORMATION", 20, y + 8);
+      pdf.text("TREATING PHYSICIAN", pageWidth / 2 + 8, y + 8);
 
       pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(11);
+      pdf.setFontSize(12);
       pdf.setFont("helvetica", "bold");
-      pdf.text(presc.patientId?.fullName || "Patient", 20, y + 17);
-      pdf.text(`Dr. ${presc.doctorId?.userId?.fullName || "Doctor"}`, pageWidth / 2 + 8, y + 17);
+      pdf.text(presc.patientId?.fullName || "Patient", 20, y + 18);
+      pdf.text(`Dr. ${presc.doctorId?.userId?.fullName || "Doctor"}`, pageWidth / 2 + 8, y + 18);
 
       pdf.setTextColor(100, 116, 139);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      const patientInfo = `Email: ${presc.patientId?.email || "—"}`;
-      pdf.text(patientInfo, 20, y + 24);
-      pdf.text(`Patient Age: ${presc.patientId?.age || "—"}`, 20, y + 30 > y + 27 ? y + 30 : y + 30);
-      y += 36;
+      pdf.text(`${presc.patientId?.email || "No email provided"}`, 20, y + 25);
+      pdf.text(`${presc.doctorId?.specialization || "Medical Specialist"}`, pageWidth / 2 + 8, y + 25);
+      y += 40;
 
       // Medicines table header
       pdf.setFillColor(37, 99, 235);
-      pdf.roundedRect(15, y, pageWidth - 30, 10, 2, 2, "F");
+      pdf.roundedRect(15, y, pageWidth - 30, 12, 3, 3, "F");
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Medicine Name", 20, y + 7);
-      pdf.text("Dosage", 85, y + 7);
-      pdf.text("Duration", 120, y + 7);
-      pdf.text("Instructions", 150, y + 7);
-      y += 12;
+      pdf.text("Medication Name", 20, y + 8);
+      pdf.text("Dosage Schedule", 85, y + 8);
+      pdf.text("Duration", 130, y + 8);
+      pdf.text("Timing", 160, y + 8);
+      y += 15;
 
       // Medicine rows
       presc.medicines?.forEach((med, idx) => {
+        const rowHeight = 16;
+        if (y + rowHeight > pageHeight - 30) {
+          pdf.addPage();
+          y = 20;
+        }
+
         const bgColor = idx % 2 === 0 ? [248, 250, 252] : [255, 255, 255];
         pdf.setFillColor(...bgColor);
-        pdf.rect(15, y, pageWidth - 30, 14, "F");
+        pdf.rect(15, y, pageWidth - 30, rowHeight, "F");
 
         pdf.setTextColor(30, 41, 59);
         pdf.setFontSize(10);
         pdf.setFont("helvetica", "bold");
-        const medName = pdf.splitTextToSize(med.name, 60);
-        pdf.text(medName[0], 20, y + 6);
+        pdf.text(med.name, 20, y + 7);
 
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
-        pdf.setTextColor(100, 116, 139);
+        pdf.setTextColor(71, 85, 105);
 
         const dosageParts = [];
         if (med.dosage?.morning) dosageParts.push("Morning");
         if (med.dosage?.noon) dosageParts.push("Noon");
         if (med.dosage?.evening) dosageParts.push("Evening");
-        pdf.text(dosageParts.join(", ") || "—", 85, y + 6);
-        pdf.text(med.duration || "—", 120, y + 6);
+        pdf.text(dosageParts.join(" - ") || "—", 85, y + 7);
+        pdf.text(med.duration || "As directed", 130, y + 7);
+        pdf.text(med.mealTiming || "—", 160, y + 7);
 
-        const instructions = `${med.mealTiming || ""}${med.description ? " | " + med.description : ""}`;
-        const instrLines = pdf.splitTextToSize(instructions || "—", 45);
-        pdf.text(instrLines[0] || "—", 150, y + 6);
+        if (med.description) {
+           pdf.setFontSize(7);
+           pdf.setTextColor(148, 163, 184);
+           pdf.text(`Note: ${med.description}`, 20, y + 12);
+        }
 
-        y += 14;
+        y += rowHeight;
       });
 
-      y += 4;
-      // Border around table
-      pdf.setDrawColor(226, 232, 240);
-      pdf.rect(15, y - (presc.medicines?.length || 0) * 14 - 16, pageWidth - 30, (presc.medicines?.length || 0) * 14 + 14, "S");
+      y += 6;
 
       if (presc.generalNotes) {
-        y += 4;
-        pdf.setFillColor(254, 252, 232);
-        pdf.roundedRect(15, y, pageWidth - 30, 20, 3, 3, "F");
-        pdf.setTextColor(146, 64, 14);
+        if (y + 30 > pageHeight - 30) {
+          pdf.addPage();
+          y = 20;
+        }
+        pdf.setFillColor(241, 245, 249);
+        pdf.roundedRect(15, y, pageWidth - 30, 25, 4, 4, "F");
+        pdf.setTextColor(37, 99, 235);
         pdf.setFontSize(9);
         pdf.setFont("helvetica", "bold");
-        pdf.text("Physician Notes:", 20, y + 8);
+        pdf.text("ADMINISTRATIVE NOTES / CLINICAL ADVICE:", 20, y + 8);
         pdf.setFont("helvetica", "normal");
-        pdf.setTextColor(92, 45, 14);
-        const noteLines = pdf.splitTextToSize(presc.generalNotes, pageWidth - 50);
+        pdf.setTextColor(51, 65, 85);
+        const noteLines = pdf.splitTextToSize(presc.generalNotes, pageWidth - 40);
         pdf.text(noteLines, 20, y + 15);
-        y += 20 + noteLines.length * 4;
+        y += 30;
       }
 
       // Footer
       const footerY = pageHeight - 20;
-      pdf.setFillColor(37, 99, 235);
-      pdf.rect(0, footerY - 5, pageWidth, pageHeight, "F");
-      pdf.setTextColor(255, 255, 255);
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(15, footerY - 5, pageWidth - 15, footerY - 5);
+      
+      pdf.setTextColor(148, 163, 184);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.text("LIONHS Care Hospital | This is a computer-generated prescription", pageWidth / 2, footerY + 2, { align: "center" });
+      pdf.text("This is an electronically generated record from LIONHS Care Hospital Management System.", pageWidth / 2, footerY + 2, { align: "center" });
+      pdf.text("Verification Code: " + presc._id.toUpperCase(), pageWidth / 2, footerY + 7, { align: "center" });
 
-      pdf.save(`prescription_${presc._id.slice(-6)}.pdf`);
+      pdf.save(`Prescription_${presc._id.slice(-6).toUpperCase()}.pdf`);
     } catch (err) {
       console.error("PDF generation error:", err);
     } finally {
@@ -204,14 +223,33 @@ export default function PatientPrescriptions() {
               <p className="font-bold text-muted-foreground">No prescriptions found.</p>
             </div>
           ) : (
-            filteredPrescriptions.map((presc, i) => (
-              <motion.div
-                key={presc._id}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-card rounded-3xl border border-border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
-              >
+            filteredPrescriptions.map((presc, i) => {
+              const isLocked = presc.appointmentId && !presc.appointmentId.isPrescriptionVisible;
+
+              return (
+                <motion.div
+                  key={presc._id}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-card rounded-3xl border border-border shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative"
+                >
+                  {isLocked && (
+                    <div className="absolute inset-0 z-10 backdrop-blur-md bg-white/40 dark:bg-slate-900/40 flex flex-col items-center justify-center p-8 text-center">
+                      <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-3xl shadow-xl flex items-center justify-center mb-4">
+                        <Lock className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Prescription Locked</h3>
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-2 max-w-[240px]">
+                        Please complete your consultation payment to unlock and download this prescription.
+                      </p>
+                      <Link to={`/patient/payment/${presc.appointmentId._id}`} className="mt-6">
+                        <Button className="rounded-2xl h-11 px-6 bg-primary text-white font-bold shadow-lg shadow-primary/20">
+                          Go to Payments
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 {/* Card Header */}
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-4 flex items-center justify-between border-b border-border">
                   <div className="flex items-center gap-3">
@@ -287,9 +325,10 @@ export default function PatientPrescriptions() {
                       <p className="text-sm font-black text-foreground">Dr. {presc.doctorId?.userId?.fullName}</p>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))
+                  </div>
+                </motion.div>
+              );
+            })
           )}
         </div>
       </div>

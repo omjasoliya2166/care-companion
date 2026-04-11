@@ -9,6 +9,19 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   age: { type: Number },
   avatarUrl: { type: String, default: '' },
+  healthMetrics: {
+    bloodPressure: { type: String, default: '120/80' },
+    heartRate: { type: Number, default: 72 },
+    glucose: { type: Number, default: 90 },
+    temperature: { type: Number, default: 36.6 },
+    history: [{
+      bloodPressure: String,
+      heartRate: Number,
+      glucose: Number,
+      temperature: Number,
+      timestamp: { type: Date, default: Date.now }
+    }]
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

@@ -7,7 +7,7 @@ const doctorSchema = new mongoose.Schema({
   profileImage: { type: String, default: '' },
   bio: { type: String, default: '' },
   available: { type: Boolean, default: true },
-  consultationFee: { type: Number, default: 150 },
+  consultationFee: { type: Number, default: 1500 },
   unavailableSlots: [{
     date: { type: String, required: true },
     time: { type: String, required: true }

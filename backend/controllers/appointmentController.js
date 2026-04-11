@@ -2,6 +2,7 @@ import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Unavailability from '../models/Unavailability.js';
+import Payment from '../models/Payment.js';
 import { sendEmail } from '../utils/email.js';
 import { createNotification } from './notificationController.js';
 
@@ -61,6 +62,23 @@ export const getBookedSlots = async (req, res) => {
   }
 };
 
+const isTimeValid = (timeStr) => {
+  if (!timeStr) return false;
+  const timeMatch = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!timeMatch) return false;
+  
+  let [_, hours, minutes, modifier] = timeMatch;
+  hours = parseInt(hours, 10);
+  if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
+  if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+  
+  const totalMinutes = hours * 60 + parseInt(minutes, 10);
+  const startMinutes = 9 * 60; // 9:00 AM
+  const endMinutes = 17 * 60; // 5:00 PM
+  
+  return totalMinutes >= startMinutes && totalMinutes <= endMinutes;
+};
+
 export const createAppointment = async (req, res) => {
   try {
     const dateInput = req.body.appointmentDate || req.body.date;
@@ -68,6 +86,10 @@ export const createAppointment = async (req, res) => {
 
     if (!dateInput || !timeInput || !req.body.doctorId) {
       return res.status(400).json({ message: 'Missing required fields: doctor, date, or time.' });
+    }
+
+    if (!isTimeValid(timeInput)) {
+      return res.status(400).json({ message: 'Invalid appointment time. Please select between 9:00 AM and 5:00 PM.' });
     }
 
     const existingAppointment = await Appointment.findOne({
@@ -81,12 +103,18 @@ export const createAppointment = async (req, res) => {
       return res.status(409).json({ message: 'This time slot is already booked for the selected doctor.' });
     }
 
+    // Fetch doctor dynamically to lock the consultation fee
+    const doctorObj = await Doctor.findById(req.body.doctorId);
+    if (!doctorObj) return res.status(404).json({ message: 'Doctor not found' });
+    const feeToLock = doctorObj.consultationFee || 1500;
+
     const appointment = await Appointment.create({
       doctorId: req.body.doctorId,
       notes: req.body.notes || '',
       date: dateInput,
       time: timeInput,
-      patientId: req.user._id
+      patientId: req.user._id,
+      chargeAmount: feeToLock
     });
 
     const populatedAppt = await Appointment.findById(appointment._id)
@@ -281,6 +309,10 @@ export const rescheduleAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields: date or time.' });
     }
 
+    if (!isTimeValid(time)) {
+      return res.status(400).json({ message: 'Invalid appointment time. Please select between 9:00 AM and 5:00 PM.' });
+    }
+
     const appointment = await Appointment.findById(req.params.id)
       .populate('patientId', 'fullName email')
       .populate({ path: 'doctorId', populate: { path: 'userId', select: 'fullName' } });
@@ -323,6 +355,111 @@ export const rescheduleAppointment = async (req, res) => {
     });
 
     res.json(appointment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const payForAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (appointment.patientId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (appointment.isPaid) {
+      return res.status(400).json({ message: 'Appointment is already paid' });
+    }
+
+    // Generate unique transaction ID
+    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    // Create payment record
+    const payment = await Payment.create({
+      appointmentId: appointment._id,
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      amount: appointment.chargeAmount || 1500,
+      status: 'Paid',
+      transactionId: transactionId
+    });
+
+    appointment.isPaid = true;
+    appointment.isPrescriptionVisible = true;
+    await appointment.save();
+
+    await createNotification({
+      userId: req.user._id,
+      type: 'general',
+      title: 'Payment Successful 💳',
+      message: `Payment for your appointment on ${new Date(appointment.date).toLocaleDateString()} has been processed (Txn: ${transactionId}). Prescription is now unlocked.`,
+      meta: { appointmentId: appointment._id }
+    });
+
+    res.json({ message: 'Payment successful', appointment, payment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPaymentByAppointment = async (req, res) => {
+  try {
+    const payment = await Payment.findOne({ appointmentId: req.params.id })
+      .populate('patientId', 'fullName email')
+      .populate({ path: 'doctorId', populate: { path: 'userId', select: 'fullName' } })
+      .populate('appointmentId');
+      
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    
+    // Auth check
+    if (req.user.role === 'patient' && payment.patientId._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    
+    res.json(payment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPatientPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({ patientId: req.user._id })
+      .populate('doctorId')
+      .populate({ path: 'doctorId', populate: { path: 'userId', select: 'fullName' } })
+      .populate('appointmentId')
+      .sort({ createdAt: -1 });
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getDoctorPayments = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    
+    const payments = await Payment.find({ doctorId: doctor._id })
+      .populate('patientId', 'fullName email')
+      .populate('appointmentId')
+      .sort({ createdAt: -1 });
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAllPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({})
+      .populate('patientId', 'fullName email')
+      .populate('doctorId')
+      .populate({ path: 'doctorId', populate: { path: 'userId', select: 'fullName' } })
+      .populate('appointmentId')
+      .sort({ createdAt: -1 });
+    res.json(payments);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

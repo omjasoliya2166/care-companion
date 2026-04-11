@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
@@ -44,20 +45,24 @@ export default function DoctorDashboard() {
     enabled: !!doctor,
   });
 
-  const fee = doctor?.consultationFee || 150;
+  const fee = doctor?.consultationFee || 1500;
   
   const pendingCount = appointments?.filter(a => a.status === 'pending' || a.status === 'pending_reschedule').length || 0;
   const approvedCount = appointments?.filter(a => a.status === 'approved').length || 0;
   const totalCompleted = appointments?.filter(a => a.status === 'completed').length || 0;
   
+  const [revTab, setRevTab] = useState('history');
+
   const historyEarnings = totalCompleted * fee;
   const projectedEarnings = approvedCount * fee;
+
+  const currentRevData = revTab === 'history' ? chartData : chartData.map(d => ({ ...d, revenue: d.revenue * 1.5 }));
 
   // Active Queue Logic
   const today = new Date().toISOString().split('T')[0];
   const activeQueue = appointments?.filter(a => 
     a.status === 'approved' && 
-    a.date.startsWith(today)
+    (a.date.startsWith(today) || new Date(a.date).toDateString() === new Date().toDateString())
   ).sort((a, b) => a.time.localeCompare(b.time)) || [];
 
   const getWaitTime = (index) => {
@@ -93,7 +98,7 @@ export default function DoctorDashboard() {
             { label: "Pending Requests", value: pendingCount, icon: Clock, color: "text-orange-500", bg: "bg-orange-50", subtitle: "Awaiting Action" },
             { label: "Active Patients", value: approvedCount, icon: UserCheck, color: "text-blue-500", bg: "bg-blue-50", subtitle: "Scheduled Today" },
             { label: "Completed", value: totalCompleted, icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50", subtitle: "Total Success" },
-            { label: "Earnings", value: `$${historyEarnings + projectedEarnings}`, icon: DollarSign, color: "text-indigo-500", bg: "bg-indigo-50", subtitle: `${historyEarnings} History / ${projectedEarnings} Proj.` },
+            { label: "Earnings", value: `₹${historyEarnings + projectedEarnings}`, icon: DollarSign, color: "text-indigo-500", bg: "bg-indigo-50", subtitle: `${historyEarnings} History / ${projectedEarnings} Proj.` },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -128,17 +133,30 @@ export default function DoctorDashboard() {
           <Card className="lg:col-span-2 border-none shadow-sm rounded-[3rem] overflow-hidden bg-white">
             <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-2xl font-black text-slate-900">Revenue Stream</CardTitle>
-                <p className="text-slate-500 font-medium mt-1">Daily revenue distribution analytics</p>
+                <CardTitle className="text-2xl font-black text-slate-900">Revenue <span className="text-primary italic">Stream</span></CardTitle>
+                <p className="text-slate-500 font-medium mt-1">Daily revenue distribution ({revTab})</p>
               </div>
               <div className="bg-slate-50 p-2 rounded-2xl border border-slate-100 flex gap-2">
-                <Button size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-widest bg-white text-slate-900 shadow-sm border border-slate-200 hover:bg-slate-50">History</Button>
-                <Button size="sm" variant="ghost" className="rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">Projection</Button>
+                <Button 
+                  size="sm" 
+                  className={`rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${revTab === 'history' ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-400"}`}
+                  onClick={() => setRevTab('history')}
+                >
+                  History
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className={`rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${revTab === 'projection' ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-400"}`}
+                  onClick={() => setRevTab('projection')}
+                >
+                  Projection
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="h-[400px] p-10 pt-6">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={currentRevData}>
                   <defs>
                     <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
@@ -149,7 +167,7 @@ export default function DoctorDashboard() {
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} />
                   <Tooltip 
-                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
+                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '20px' }}
                   />
                   <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
                 </AreaChart>

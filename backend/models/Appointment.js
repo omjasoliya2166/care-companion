@@ -10,6 +10,9 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled', 'pending_reschedule'], 
     default: 'pending' 
   },
+  chargeAmount: { type: Number, default: 1000 },
+  isPaid: { type: Boolean, default: false },
+  isPrescriptionVisible: { type: Boolean, default: false },
   notes: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

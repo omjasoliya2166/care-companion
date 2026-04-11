@@ -12,6 +12,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import chatRoutes from './routes/chat.js';
 import prescriptionRoutes from './routes/prescriptions.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ const io = new Server(server, {
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -36,6 +38,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Socket.IO logic
 const users = {}; // Map socketId to userId
@@ -82,6 +85,13 @@ io.on('connection', (socket) => {
     const targetSocket = users[to];
     if (targetSocket) {
       io.to(targetSocket).emit('call_ended');
+    }
+  });
+
+  socket.on('ice_candidate', ({ to, candidate }) => {
+    const targetSocket = users[to];
+    if (targetSocket) {
+      io.to(targetSocket).emit('ice_candidate', { candidate, from: socket.id });
     }
   });
 

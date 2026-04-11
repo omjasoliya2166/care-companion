@@ -92,8 +92,21 @@ export const uploadAvatar = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    user.avatarUrl = req.file.path; // Cloudinary URL
+    let finalPath = req.file.path;
+    // If it's a local file path (not a Cloudinary URL), format it as a URL
+    if (!finalPath.startsWith('http')) {
+      finalPath = `${req.protocol}://${req.get('host')}/${finalPath.replace(/\\/g, '/')}`;
+    }
+
+    user.avatarUrl = finalPath;
     await user.save();
+
+    // If user is a doctor, also update Doctor model
+    if (user.role === 'doctor') {
+      import('../models/Doctor.js').then(async ({ default: Doctor }) => {
+        await Doctor.findOneAndUpdate({ userId: user._id }, { profileImage: finalPath });
+      });
+    }
 
     res.json({
       _id: user._id,

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
@@ -33,17 +34,21 @@ export default function PatientDashboard() {
     enabled: !!user,
   });
 
-  const upcoming = appointments?.filter(a => a.status === 'approved' || a.status === 'pending').slice(0, 3);
-  
-  const statusColor = (s) => {
-    switch (s) {
-      case "approved": return "bg-success/10 text-success border-success/20";
-      case "pending": return "bg-warning/10 text-warning border-warning/20";
-      case "completed": return "bg-primary/10 text-primary border-primary/20";
-      case "cancelled": return "bg-muted text-muted-foreground border-border";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
+  const upcoming = appointments?.filter(a => ['pending', 'approved', 'pending_reschedule'].includes(a.status)) || [];
+
+  const [chartRange, setChartRange] = useState('week');
+
+  const stats = [
+    { label: "Heart Rate", value: `${user?.healthMetrics?.heartRate || 72} bpm`, icon: Heart, color: "text-red-500", bg: "bg-red-50", trend: "+2%" },
+    { label: "Glucose", value: `${user?.healthMetrics?.glucose || 90} mg/dL`, icon: Droplets, color: "text-blue-500", bg: "bg-blue-50", trend: "-1%" },
+    { label: "Body Temp", value: `${user?.healthMetrics?.temperature || 36.6} °C`, icon: Thermometer, color: "text-orange-500", bg: "bg-orange-50", trend: "0%" },
+    { label: "Blood Pressure", value: user?.healthMetrics?.bloodPressure || "120/80", icon: Activity, color: "text-emerald-500", bg: "bg-emerald-50", trend: "+3%" },
+  ];
+
+  const chartData = chartRange === 'week' ? healthData : [
+    ...healthData,
+    { name: 'Mon', value: 70 }, { name: 'Tue', value: 72 }, { name: 'Wed', value: 75 }
+  ];
 
   return (
     <DashboardLayout role="patient">
@@ -61,12 +66,7 @@ export default function PatientDashboard() {
 
         {/* Vital Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { label: "Heart Rate", value: "72 bpm", icon: Heart, color: "text-red-500", bg: "bg-red-50", trend: "+2%" },
-            { label: "Glucose", value: "98 mg/dL", icon: Droplets, color: "text-blue-500", bg: "bg-blue-50", trend: "-1%" },
-            { label: "Body Temp", value: "36.6 °C", icon: Thermometer, color: "text-orange-500", bg: "bg-orange-50", trend: "0%" },
-            { label: "Blood Pressure", value: "120/80", icon: Activity, color: "text-emerald-500", bg: "bg-emerald-50", trend: "+3%" },
-          ].map((stat, i) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
@@ -96,17 +96,31 @@ export default function PatientDashboard() {
           <Card className="lg:col-span-2 border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden">
             <CardHeader className="p-10 pb-0 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-2xl font-black text-slate-900">Health Outlook</CardTitle>
-                <p className="text-slate-500 mt-1 font-medium">Your weekly heart rate activity</p>
+                <CardTitle className="text-2xl font-black text-slate-900">Heart <span className="text-primary">Outlook</span></CardTitle>
+                <p className="text-slate-500 mt-1 font-medium">Your {chartRange}ly heart rate activity</p>
               </div>
               <div className="flex bg-slate-100 p-1 rounded-xl">
-                <Button variant="ghost" size="sm" className="rounded-lg text-xs font-bold bg-white shadow-sm">Week</Button>
-                <Button variant="ghost" size="sm" className="rounded-lg text-xs font-bold text-slate-400">Month</Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`rounded-lg text-xs font-bold transition-all ${chartRange === 'week' ? "bg-white shadow-sm" : "text-slate-400"}`}
+                  onClick={() => setChartRange('week')}
+                >
+                  Week
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`rounded-lg text-xs font-bold transition-all ${chartRange === 'month' ? "bg-white shadow-sm" : "text-slate-400"}`}
+                  onClick={() => setChartRange('month')}
+                >
+                  Month
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="h-[350px] p-10 pt-6">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={healthData}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>

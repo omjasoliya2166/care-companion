@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { 
   Dialog, DialogContent, DialogHeader, 
-  DialogTitle, DialogTrigger, DialogFooter 
+  DialogTitle, DialogTrigger, DialogFooter, DialogDescription 
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -186,8 +186,10 @@ export default function DoctorPrescriptions() {
                                           <Pill className="w-8 h-8 text-primary" />
                                         </div>
                                         <div>
-                                          <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Standardized Prescription</DialogTitle>
-                                          <p className="text-slate-500 font-medium text-sm">Case Ref: {appt._id.slice(-8).toUpperCase()} • Patient: {appt.patientId?.fullName}</p>
+                                            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Standardized Prescription</DialogTitle>
+                                            <DialogDescription className="text-slate-500 font-medium text-sm">
+                                              Case Ref: {appt._id.slice(-8).toUpperCase()} • Patient: {appt.patientId?.fullName}
+                                            </DialogDescription>
                                         </div>
                                       </div>
                                     </DialogHeader>

@@ -1,7 +1,13 @@
 import mongoose from 'mongoose';
 import User from './models/User.js';
+import Appointment from './models/Appointment.js';
+import Chat from './models/Chat.js';
+import Message from './models/Message.js';
+import Notification from './models/Notification.js';
+import Prescription from './models/Prescription.js';
+import Unavailability from './models/Unavailability.js';
+import Doctor from './models/Doctor.js';
 import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -12,25 +18,31 @@ const seedAdmin = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    const adminEmail = 'admin@smarttasks.com';
-    const adminPassword = 'Admin@123';
+    // Destructive Seed Section
+    console.log('Purging existing data...');
+    await Promise.all([
+      User.deleteMany({}),
+      Appointment.deleteMany({}),
+      Chat.deleteMany({}),
+      Message.deleteMany({}),
+      Notification.deleteMany({}),
+      Prescription.deleteMany({}),
+      Unavailability.deleteMany({}),
+      Doctor.deleteMany({})
+    ]);
+    console.log('All previous data cleared.');
 
-    const adminExists = await User.findOne({ email: adminEmail });
+    const adminEmail = 'hospitaladmin@liohns.com';
+    const adminPassword = 'Admin@985';
 
-    if (adminExists) {
-      console.log('Admin already exists. Updating password...');
-      adminExists.password = adminPassword;
-      await adminExists.save();
-      console.log('Admin password updated successfully');
-    } else {
-      await User.create({
-        fullName: 'System Administrator',
-        email: adminEmail,
-        password: adminPassword,
-        role: 'admin'
-      });
-      console.log('Admin user created successfully');
-    }
+    await User.create({
+      fullName: 'System Administrator',
+      email: adminEmail,
+      password: adminPassword,
+      role: 'admin'
+    });
+    
+    console.log('Super Admin user created successfully');
 
     console.log('\n--- Admin Credentials ---');
     console.log(`Email: ${adminEmail}`);
