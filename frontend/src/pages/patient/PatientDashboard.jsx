@@ -23,6 +23,14 @@ const healthData = [
   { name: 'Sun', value: 72 },
 ];
 
+const monthHealthData = [
+  { name: 'Mon', value: 71 }, { name: 'Tue', value: 74 }, { name: 'Wed', value: 68 }, { name: 'Thu', value: 79 }, { name: 'Fri', value: 73 }, { name: 'Sat', value: 70 }, { name: 'Sun', value: 72 },
+  { name: 'Mon', value: 75 }, { name: 'Tue', value: 76 }, { name: 'Wed', value: 72 }, { name: 'Thu', value: 81 }, { name: 'Fri', value: 74 }, { name: 'Sat', value: 71 }, { name: 'Sun', value: 73 },
+  { name: 'Mon', value: 72 }, { name: 'Tue', value: 75 }, { name: 'Wed', value: 69 }, { name: 'Thu', value: 80 }, { name: 'Fri', value: 75 }, { name: 'Sat', value: 72 }, { name: 'Sun', value: 74 },
+  { name: 'Mon', value: 74 }, { name: 'Tue', value: 77 }, { name: 'Wed', value: 71 }, { name: 'Thu', value: 82 }, { name: 'Fri', value: 76 }, { name: 'Sat', value: 73 }, { name: 'Sun', value: 75 },
+  { name: 'Mon', value: 73 }, { name: 'Tue', value: 76 }
+];
+
 export default function PatientDashboard() {
   const { user } = useAuth();
   const { data: appointments, isLoading } = useQuery({
@@ -45,10 +53,7 @@ export default function PatientDashboard() {
     { label: "Blood Pressure", value: user?.healthMetrics?.bloodPressure || "120/80", icon: Activity, color: "text-emerald-500", bg: "bg-emerald-50", trend: "+3%" },
   ];
 
-  const chartData = chartRange === 'week' ? healthData : [
-    ...healthData,
-    { name: 'Mon', value: 70 }, { name: 'Tue', value: 72 }, { name: 'Wed', value: 75 }
-  ];
+  const chartData = chartRange === 'week' ? healthData : monthHealthData;
 
   return (
     <DashboardLayout role="patient">

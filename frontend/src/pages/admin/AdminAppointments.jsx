@@ -3,7 +3,7 @@ import api from "@/services/api";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
-import jsPDF from "jspdf";
+import { generatePrescriptionPDF, generateInvoicePDF } from "@/utils/pdfGenerators";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminAppointments() {
@@ -46,195 +46,21 @@ export default function AdminAppointments() {
         console.warn("Could not fetch unique payment record", err);
       }
 
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      
-      pdf.setFillColor(15, 23, 42);
-      pdf.rect(0, 0, pageWidth, 40, "F");
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("LIONHS Care Invoice", pageWidth / 2, 18, { align: "center" });
-      
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Electronic Billing Statement • Tax Invoice", pageWidth / 2, 26, { align: "center" });
-
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("BILL TO:", 15, 55);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(appt.patientId?.fullName || "Patient", 15, 62);
-
-      pdf.setFont("helvetica", "bold");
-      pdf.text("DOCTOR:", 120, 55);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Dr. ${appt.doctorId?.userId?.fullName || "Doctor"}`, 120, 62);
-
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 80, pageWidth - 15, 80);
-
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Description", 20, 95);
-      pdf.text("Date", 100, 95);
-      pdf.text("Amount", pageWidth - 20, 95, { align: "right" });
-
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Consultation Fee`, 20, 110);
-      pdf.text(new Date(appt.date).toLocaleDateString(), 100, 110);
-      pdf.text(`₹${appt.chargeAmount ? appt.chargeAmount.toFixed(2) : '1500.00'}`, pageWidth - 20, 110, { align: "right" });
-
-      pdf.line(15, 120, pageWidth - 15, 120);
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(14);
-      pdf.text("Total Paid:", 120, 135);
-      pdf.text(`₹${appt.chargeAmount ? appt.chargeAmount.toFixed(2) : '1500.00'}`, pageWidth - 20, 135, { align: "right" });
-
-      pdf.setFontSize(8);
-      pdf.setTextColor(148, 163, 184);
-      pdf.text(`Payment Status: ${appt.isPaid ? 'SUCCESSFUL' : 'PENDING'}`, 20, 150);
-      if (appt.isPaid) {
-        pdf.text(`Transaction ID: ${transactionId}`, 20, 155);
-      }
-
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 165, pageWidth - 15, 165);
-      pdf.setFontSize(7);
-      pdf.text("Thank you for choosing LIONHS Care.", pageWidth / 2, 172, { align: "center" });
-
-      const blob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
+      generateInvoicePDF({
+        patientName: appt.patientId?.fullName || "Patient",
+        doctorName: appt.doctorId?.userId?.fullName || "Doctor",
+        date: appt.date,
+        amount: appt.chargeAmount,
+        paymentStatus: appt.isPaid ? 'SUCCESSFUL' : 'PENDING',
+        transactionId: appt.isPaid ? transactionId : null
+      });
     } catch (err) {
       console.error("PDF Failed:", err);
     }
   };
 
   const exportPDF = async (presc) => {
-    try {
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      let y = 0;
-
-      // Header background
-      pdf.setFillColor(37, 99, 235);
-      pdf.rect(0, 0, pageWidth, 45, "F");
-
-      // Hospital name
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(26);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("LIONHS Care Hospital", pageWidth / 2, 18, { align: "center" });
-      
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Excellence in Precision Healthcare", pageWidth / 2, 26, { align: "center" });
-      
-      pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(0.5);
-      pdf.line(pageWidth / 2 - 40, 32, pageWidth / 2 + 40, 32);
-      
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("DIGITAL MEDICAL PRESCRIPTION", pageWidth / 2, 40, { align: "center" });
-
-      y = 55;
-
-      // Prescription ID & Date
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(`REFERENCE ID: #${presc._id.slice(-8).toUpperCase()}`, 15, y);
-      pdf.text(`ISSUED ON: ${new Date(presc.createdAt).toLocaleDateString()}`, pageWidth - 15, y, { align: "right" });
-      y += 8;
-
-      // Divider
-      pdf.setDrawColor(226, 232, 240);
-      pdf.setLineWidth(0.1);
-      pdf.line(15, y, pageWidth - 15, y);
-      y += 10;
-
-      // Patient & Doctor Info
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(15, y, (pageWidth - 35) / 2, 32, 4, 4, "F");
-      pdf.roundedRect(pageWidth / 2 + 3, y, (pageWidth - 35) / 2, 32, 4, 4, "F");
-
-      pdf.setTextColor(37, 99, 235);
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PATIENT INFORMATION", 20, y + 8);
-      pdf.text("TREATING PHYSICIAN", pageWidth / 2 + 8, y + 8);
-
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(presc.patientId?.fullName || "Patient", 20, y + 18);
-      pdf.text(`Dr. ${presc.doctorId?.userId?.fullName || "Doctor"}`, pageWidth / 2 + 8, y + 18);
-
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${presc.patientId?.email || "No email provided"}`, 20, y + 25);
-      pdf.text(`${presc.doctorId?.specialization || "Medical Specialist"}`, pageWidth / 2 + 8, y + 25);
-      y += 40;
-
-      // Medicines table header
-      pdf.setFillColor(37, 99, 235);
-      pdf.roundedRect(15, y, pageWidth - 30, 12, 3, 3, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Medication Name", 20, y + 8);
-      pdf.text("Dosage Schedule", 85, y + 8);
-      pdf.text("Duration", 130, y + 8);
-      pdf.text("Timing", 160, y + 8);
-      y += 15;
-
-      // Medicine rows
-      presc.medicines?.forEach((med, idx) => {
-        const rowHeight = 16;
-        if (y + rowHeight > pageHeight - 30) {
-          pdf.addPage();
-          y = 20;
-        }
-
-        const bgColor = idx % 2 === 0 ? [248, 250, 252] : [255, 255, 255];
-        pdf.setFillColor(...bgColor);
-        pdf.rect(15, y, pageWidth - 30, rowHeight, "F");
-
-        pdf.setTextColor(30, 41, 59);
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(med.name, 20, y + 7);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(8);
-        pdf.setTextColor(71, 85, 105);
-
-        const dosageParts = [];
-        if (med.dosage?.morning) dosageParts.push("Morning");
-        if (med.dosage?.afternoon) dosageParts.push("Afternoon");
-        if (med.dosage?.evening) dosageParts.push("Evening");
-        if (med.dosage?.night) dosageParts.push("Night");
-        
-        pdf.text(dosageParts.join(" • ") || "As prescribed", 85, y + 7);
-        pdf.text(`${med.duration} days`, 130, y + 7);
-        pdf.text(med.timing === "after_food" ? "After Food" : "Before Food", 160, y + 7);
-
-        y += rowHeight;
-      });
-
-      const blob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-    }
+    generatePrescriptionPDF(presc);
   };
 
   return (

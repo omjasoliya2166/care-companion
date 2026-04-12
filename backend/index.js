@@ -57,8 +57,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', (data) => {
-    // data: { chatId, senderId, message, type, fileUrl, fileName, createdAt }
-    io.to(data.chatId).emit('receive_message', data);
+    // Uses socket.to instead of io.to so we don't duplicate the sender's own message
+    socket.to(data.chatId).emit('receive_message', data);
     console.log(`New message in chat ${data.chatId}`);
   });
 
@@ -85,6 +85,13 @@ io.on('connection', (socket) => {
     const targetSocket = users[to];
     if (targetSocket) {
       io.to(targetSocket).emit('call_ended');
+    }
+  });
+
+  socket.on('reject_call', ({ to }) => {
+    const targetSocket = users[to];
+    if (targetSocket) {
+      io.to(targetSocket).emit('call_rejected');
     }
   });
 

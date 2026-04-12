@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, MessageSquare } from "lucide-react";
+import { generatePrescriptionPDF, generateInvoicePDF } from "@/utils/pdfGenerators";
 
 export default function PatientAppointments() {
   const { user } = useAuth();
@@ -40,162 +41,21 @@ export default function PatientAppointments() {
         console.warn("Could not fetch payment record", err);
       }
 
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      
-      pdf.setFillColor(15, 23, 42); 
-      pdf.rect(0, 0, pageWidth, 40, "F");
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("LIONHS Care Invoice", pageWidth / 2, 18, { align: "center" });
-      
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Electronic Billing Statement • Tax Invoice", pageWidth / 2, 26, { align: "center" });
-
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(10);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("BILL TO:", 15, 55);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(user?.fullName || "Patient", 15, 62);
-
-      pdf.setFont("helvetica", "bold");
-      pdf.text("DOCTOR:", 120, 55);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Dr. ${appt.doctorId?.userId?.fullName || "Doctor"}`, 120, 62);
-
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 80, pageWidth - 15, 80);
-
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Description", 20, 95);
-      pdf.text("Date", 100, 95);
-      pdf.text("Amount", pageWidth - 20, 95, { align: "right" });
-
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Consultation Fee`, 20, 110);
-      pdf.text(new Date(appt.date).toLocaleDateString(), 100, 110);
-      pdf.text(`₹${appt.chargeAmount ? appt.chargeAmount.toFixed(2) : '1500.00'}`, pageWidth - 20, 110, { align: "right" });
-
-      pdf.line(15, 120, pageWidth - 15, 120);
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(14);
-      pdf.text("Total Paid:", 120, 135);
-      pdf.text(`₹${appt.chargeAmount ? appt.chargeAmount.toFixed(2) : '1500.00'}`, pageWidth - 20, 135, { align: "right" });
-
-      pdf.setFontSize(8);
-      pdf.setTextColor(148, 163, 184);
-      pdf.text("Payment Status: SUCCESSFUL", 20, 150);
-      pdf.text(`Transaction ID: ${transactionId}`, 20, 155);
-      
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 165, pageWidth - 15, 165);
-      pdf.setFontSize(7);
-      pdf.text("Thank you for choosing LIONHS Care.", pageWidth / 2, 172, { align: "center" });
-
-      const blob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
+      generateInvoicePDF({
+        patientName: user?.fullName || "Patient",
+        doctorName: appt.doctorId?.userId?.fullName || "Doctor",
+        date: appt.date,
+        amount: appt.chargeAmount,
+        paymentStatus: appt.isPaid ? "SUCCESSFUL" : "PENDING",
+        transactionId
+      });
     } catch (err) {
       console.error("PDF Failed:", err);
     }
   };
 
   const exportPDF = async (presc) => {
-    try {
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      let y = 0;
-
-      pdf.setFillColor(37, 99, 235);
-      pdf.rect(0, 0, pageWidth, 45, "F");
-
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(26);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("LIONHS Care Hospital", pageWidth / 2, 18, { align: "center" });
-      
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Excellence in Precision Healthcare", pageWidth / 2, 26, { align: "center" });
-      
-      pdf.setDrawColor(255, 255, 255);
-      pdf.setLineWidth(0.5);
-      pdf.line(pageWidth / 2 - 40, 32, pageWidth / 2 + 40, 32);
-      
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("DIGITAL PRESCRIPTION", pageWidth / 2, 40, { align: "center" });
-
-      y = 55;
-
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(`ID: #${presc._id.slice(-8).toUpperCase()}`, 15, y);
-      pdf.text(`DATE: ${new Date(presc.createdAt).toLocaleDateString()}`, pageWidth - 15, y, { align: "right" });
-      y += 10;
-
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(15, y, (pageWidth - 35) / 2, 25, 4, 4, "F");
-      pdf.roundedRect(pageWidth / 2 + 3, y, (pageWidth - 35) / 2, 25, 4, 4, "F");
-
-      pdf.setTextColor(37, 99, 235);
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PATIENT", 20, y + 8);
-      pdf.text("DOCTOR", pageWidth / 2 + 8, y + 8);
-
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(11);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(presc.patientId?.fullName || "Patient", 20, y + 16);
-      pdf.text(`Dr. ${presc.doctorId?.userId?.fullName || "Doctor"}`, pageWidth / 2 + 8, y + 16);
-      y += 35;
-
-      pdf.setFillColor(37, 99, 235);
-      pdf.roundedRect(15, y, pageWidth - 30, 10, 2, 2, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Medicine", 20, y + 7);
-      pdf.text("Dosage", 95, y + 7);
-      pdf.text("Duration", 150, y + 7);
-      y += 15;
-
-      presc.medicines?.forEach((med) => {
-        pdf.setTextColor(30, 41, 59);
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(med.name, 20, y + 4);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(8);
-        pdf.setTextColor(71, 85, 105);
-
-        const dosage = [];
-        if (med.dosage?.morning) dosage.push("Morning");
-        if (med.dosage?.afternoon) dosage.push("Afternoon");
-        if (med.dosage?.evening) dosage.push("Evening");
-        if (med.dosage?.night) dosage.push("Night");
-        
-        pdf.text(dosage.join(", ") || "As directed", 95, y + 4);
-        pdf.text(`${med.duration} days`, 150, y + 4);
-        y += 10;
-      });
-
-      const blob = pdf.output('blob');
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-    } catch (err) {
-      console.error("PDF Failed:", err);
-    }
+    generatePrescriptionPDF(presc);
   };
 
   return (
@@ -219,6 +79,7 @@ export default function PatientAppointments() {
                   <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">Date & Time</th>
                   <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">Appointment Status</th>
                   <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">Payment Status</th>
+                  <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">Chat</th>
                   <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">View Invoice</th>
                   <th className="text-left p-4 font-bold text-muted-foreground uppercase text-xs">View Prescription</th>
                 </tr>
@@ -262,6 +123,17 @@ export default function PatientAppointments() {
                                 Not Paid (Pay Now)
                               </span>
                             </Link>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {a.status === 'approved' || a.status === 'completed' ? (
+                            <Link to={`/chat/${a._id}`}>
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 text-primary">
+                                <MessageSquare className="w-3 h-3 mr-1" /> Chat
+                              </Button>
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </td>
                         <td className="p-4">

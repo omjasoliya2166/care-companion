@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
   const { data: stats } = useQuery({
@@ -111,9 +112,11 @@ export default function AdminDashboard() {
                   <CardTitle className="text-2xl font-black text-slate-900">Recent Appointments</CardTitle>
                   <p className="text-slate-400 font-medium text-sm mt-1">Latest consultation logs and booking status.</p>
                 </div>
-                <Button variant="ghost" className="rounded-xl font-bold text-primary group">
-                  View Full Logs <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </Button>
+                <Link to="/admin/appointments">
+                  <Button variant="ghost" className="rounded-xl font-bold text-primary group">
+                    View Full Logs <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </Button>
+                </Link>
              </CardHeader>
              <CardContent className="p-0">
                 <div className="divide-y divide-slate-50">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/services/api";
@@ -28,6 +28,7 @@ export default function DoctorPrescriptions() {
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [medicines, setMedicines] = useState([{ 
     name: "", 
+    quantity: "",
     dosage: { morning: false, noon: false, evening: false }, 
     mealTiming: "After Meal", 
     description: "" 
@@ -75,6 +76,7 @@ export default function DoctorPrescriptions() {
   const resetForm = () => {
     setMedicines([{ 
       name: "", 
+      quantity: "",
       dosage: { morning: false, noon: false, evening: false }, 
       mealTiming: "After Meal", 
       description: "" 
@@ -84,6 +86,7 @@ export default function DoctorPrescriptions() {
 
   const addMedicine = () => setMedicines([...medicines, { 
     name: "", 
+    quantity: "",
     dosage: { morning: false, noon: false, evening: false }, 
     mealTiming: "After Meal", 
     description: "" 
@@ -261,7 +264,44 @@ export default function DoctorPrescriptions() {
   );
 }
 
+// I will just write a clean CardMedicine function
+
 function CardMedicine({ idx, med, updateMedicine, removeMedicine, canRemove }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Autocomplete fetcher
+  useEffect(() => {
+    const fetchMeds = async () => {
+      if (!med.name || med.name.length < 2 || !showSuggestions) {
+        setSuggestions([]);
+        setIsSearching(false);
+        return;
+      }
+      setIsSearching(true);
+      const basicMeds = ["Paracetamol", "Ibuprofen", "Amoxicillin", "Azithromycin", "Aspirin", "Metformin", "Omeprazole", "Cetirizine"].filter(m => m.toLowerCase().includes(med.name.toLowerCase()));
+      
+      try {
+        const res = await fetch(`https://api.fda.gov/drug/ndc.json?search=brand_name:${med.name}*&limit=8`);
+        if (res.ok) {
+          const data = await res.json();
+          const names = data.results.map(r => r.brand_name).filter(Boolean);
+          setSuggestions([...new Set([...basicMeds, ...names])]);
+        } else {
+          setSuggestions(basicMeds);
+        }
+      } catch {
+        setSuggestions(basicMeds);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+    
+    const timeoutId = setTimeout(fetchMeds, 400);
+    return () => clearTimeout(timeoutId);
+  }, [med.name, showSuggestions]);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -269,16 +309,53 @@ function CardMedicine({ idx, med, updateMedicine, removeMedicine, canRemove }) {
       className="p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 space-y-8 relative group"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-3">
+        <div className="space-y-3 relative z-20">
           <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Substance Name</Label>
           <Input 
-            placeholder="e.g. Paracetamol 500mg" 
+            placeholder="e.g. Paracetamol" 
             value={med.name} 
-            onChange={(e) => updateMedicine(idx, 'name', e.target.value)}
+            onChange={(e) => {
+              updateMedicine(idx, 'name', e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            className="h-14 rounded-2xl bg-white border-slate-100 font-bold focus:ring-primary/20 shadow-sm"
+          />
+          {showSuggestions && (suggestions.length > 0 || isSearching) && (
+            <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-white shadow-xl rounded-2xl border border-slate-100 max-h-48 overflow-y-auto z-50 p-2">
+              {isSearching ? (
+                <div className="p-3 text-xs text-slate-400 font-bold text-center">Searching OpenFDA...</div>
+              ) : (
+                suggestions.map((s, i) => (
+                  <div 
+                    key={i} 
+                    className="px-4 py-3 hover:bg-primary/5 cursor-pointer rounded-xl text-sm font-bold text-slate-700 transition-colors"
+                    onClick={() => {
+                      updateMedicine(idx, 'name', s);
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    {s}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-3">
+          <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Quantity (Units)</Label>
+          <Input 
+            placeholder="e.g. 10 Tablets" 
+            value={med.quantity || ""} 
+            onChange={(e) => updateMedicine(idx, 'quantity', e.target.value)}
             className="h-14 rounded-2xl bg-white border-slate-100 font-bold focus:ring-primary/20 shadow-sm"
           />
         </div>
-        
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
         <div className="space-y-3">
           <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Dosage Frequency</Label>
           <div className="flex items-center gap-6 h-14 bg-white/50 px-4 rounded-2xl border border-slate-100">
@@ -295,9 +372,7 @@ function CardMedicine({ idx, med, updateMedicine, removeMedicine, canRemove }) {
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3">
           <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Consumption Timing</Label>
           <RadioGroup 
@@ -313,16 +388,16 @@ function CardMedicine({ idx, med, updateMedicine, removeMedicine, canRemove }) {
             ))}
           </RadioGroup>
         </div>
+      </div>
 
-        <div className="space-y-3">
-          <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Additional Guidance (Optional)</Label>
-          <Input 
-            placeholder="e.g. Swallow with warm water" 
-            value={med.description} 
-            onChange={(e) => updateMedicine(idx, 'description', e.target.value)}
-            className="h-14 rounded-2xl bg-white border-slate-100 font-bold focus:ring-primary/20 shadow-sm"
-          />
-        </div>
+      <div className="space-y-3">
+        <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Additional Guidance (Optional)</Label>
+        <Input 
+          placeholder="e.g. Swallow with warm water" 
+          value={med.description} 
+          onChange={(e) => updateMedicine(idx, 'description', e.target.value)}
+          className="h-14 rounded-2xl bg-white border-slate-100 font-bold focus:ring-primary/20 shadow-sm"
+        />
       </div>
 
       {canRemove && (

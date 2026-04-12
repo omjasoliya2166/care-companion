@@ -7,6 +7,7 @@ export default function useWebRTC(socket, userId, otherUserId) {
   const [caller, setCaller] = useState(null);
   const [callerSignal, setCallerSignal] = useState(null);
   const [callType, setCallType] = useState(null); // 'audio' or 'video'
+  const [activeOtherUserId, setActiveOtherUserId] = useState(otherUserId);
 
   const localVideo = useRef();
   const remoteVideo = useRef();
@@ -15,9 +16,9 @@ export default function useWebRTC(socket, userId, otherUserId) {
 
   const handleIceCandidate = useCallback((event) => {
     if (event.candidate) {
-      socket.emit("ice_candidate", { to: otherUserId, candidate: event.candidate });
+      socket.emit("ice_candidate", { to: activeOtherUserId, candidate: event.candidate });
     }
-  }, [socket, otherUserId]);
+  }, [socket, activeOtherUserId]);
 
   const handleTrack = useCallback((event) => {
     if (remoteVideo.current) {
@@ -25,7 +26,7 @@ export default function useWebRTC(socket, userId, otherUserId) {
     }
   }, []);
 
-  const initCall = async (type = 'video') => {
+  const initCall = async (type = 'video', dynamicOtherUserId = null) => {
     setCallType(type);
     setIsCalling(true);
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -46,8 +47,11 @@ export default function useWebRTC(socket, userId, otherUserId) {
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
     
+    const targetId = dynamicOtherUserId || otherUserId;
+    setActiveOtherUserId(targetId);
+    
     socket.emit("call_user", {
-      userToCall: otherUserId,
+      userToCall: targetId,
       signalData: offer,
       from: userId,
       name: "New Caller",
@@ -85,7 +89,12 @@ export default function useWebRTC(socket, userId, otherUserId) {
   };
 
   const endCall = () => {
-    socket.emit("end_call", { to: otherUserId });
+    socket.emit("end_call", { to: activeOtherUserId || caller });
+    cleanup();
+  };
+
+  const rejectCall = () => {
+    socket.emit("reject_call", { to: activeOtherUserId || caller });
     cleanup();
   };
 
@@ -97,9 +106,11 @@ export default function useWebRTC(socket, userId, otherUserId) {
     setCallerSignal(null);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
     if (connectionRef.current) {
       connectionRef.current.close();
+      connectionRef.current = null;
     }
   };
 
@@ -107,6 +118,7 @@ export default function useWebRTC(socket, userId, otherUserId) {
     socket.on("incoming_call", ({ signal, from, name, callType }) => {
       setReceivingCall(true);
       setCaller(from);
+      setActiveOtherUserId(from);
       setCallerSignal(signal);
       setCallType(callType || 'video');
     });
@@ -128,11 +140,16 @@ export default function useWebRTC(socket, userId, otherUserId) {
       cleanup();
     });
 
+    socket.on("call_rejected", () => {
+      cleanup();
+    });
+
     return () => {
       socket.off("incoming_call");
       socket.off("call_accepted");
       socket.off("ice_candidate");
       socket.off("call_ended");
+      socket.off("call_rejected");
     };
   }, [socket]);
 
@@ -146,5 +163,6 @@ export default function useWebRTC(socket, userId, otherUserId) {
     initCall,
     answerCall,
     endCall,
+    rejectCall,
   };
 }

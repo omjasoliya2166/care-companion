@@ -34,10 +34,15 @@ const localDiskStorage = multer.diskStorage({
 
 const cloudinaryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'care-companion/profile',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-    public_id: (req, file) => `${Date.now()}-${file.originalname.split('.')[0]}`
+  params: async (req, file) => {
+    const isPdf = file.mimetype === 'application/pdf';
+    return {
+      folder: 'care-companion/uploads',
+      resource_type: 'auto',
+      format: isPdf ? 'pdf' : undefined,
+      allowed_formats: isPdf ? undefined : ['jpg', 'png', 'jpeg', 'webp', 'mp4', 'webm', 'mov'],
+      public_id: `${Date.now()}-${file.originalname.replace(/\.[^/.]+$/, "").replace(/\s+/g, '-')}`
+    };
   }
 });
 
@@ -45,11 +50,15 @@ const storage = useCloudinary ? cloudinaryStorage : localDiskStorage;
 
 // File Filter
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const allowedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+    'application/pdf',
+    'video/mp4', 'video/webm', 'video/quicktime'
+  ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, JPG, PNG and WEBP images are allowed.'), false);
+    cb(new Error('Invalid file type. Only images, PDFs, and videos are allowed.'), false);
   }
 };
 
@@ -57,7 +66,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for profile images
+    fileSize: 50 * 1024 * 1024 // Increased to 50MB for video/pdf support
   }
 });
 

@@ -6,10 +6,10 @@ export const getOrCreateChat = async (req, res) => {
   try {
     const { appointmentId } = req.params;
     
-    // Check if appointment exists and is approved
+    // Check if appointment exists and is approved or completed
     const appointment = await Appointment.findById(appointmentId).populate('doctorId');
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
-    if (appointment.status !== 'approved') return res.status(403).json({ message: 'Chat is only enabled for approved appointments' });
+    if (!['approved', 'completed'].includes(appointment.status)) return res.status(403).json({ message: 'Chat is only enabled for approved or completed appointments' });
 
     // Check if chat already exists
     let chat = await Chat.findOne({ appointmentId })
@@ -93,7 +93,7 @@ export const sendMessage = async (req, res) => {
 
 export const getUserChats = async (req, res) => {
   try {
-    const chats = await Chat.find({ participants: req.user._id })
+    const chatsDocs = await Chat.find({ participants: req.user._id })
       .populate('participants', 'fullName profileImage role')
       .populate('lastMessage')
       .populate({
@@ -101,6 +101,19 @@ export const getUserChats = async (req, res) => {
         populate: { path: 'doctorId', populate: { path: 'userId', select: 'fullName' } }
       })
       .sort({ updatedAt: -1 });
+      
+    // Convert to plain objects and append unreadCount
+    const chats = await Promise.all(chatsDocs.map(async (chatDoc) => {
+      const chat = chatDoc.toObject();
+      const unreadCount = await Message.countDocuments({
+        chatId: chat._id,
+        senderId: { $ne: req.user._id },
+        read: false
+      });
+      chat.unreadCount = unreadCount;
+      return chat;
+    }));
+      
     res.json(chats);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -120,6 +133,19 @@ export const handleFileUpload = async (req, res) => {
       name: req.file.originalname,
       type: req.file.mimetype.split('/')[0] === 'application' ? 'pdf' : req.file.mimetype.split('/')[0]
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const markMessagesAsRead = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    await Message.updateMany(
+      { chatId, senderId: { $ne: req.user._id }, read: false },
+      { $set: { read: true } }
+    );
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

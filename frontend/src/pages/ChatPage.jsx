@@ -170,19 +170,22 @@ export default function ChatPage() {
 
   const MessageBubble = ({ m }) => {
     const isMe = m.senderId === user?._id;
+    const sender = chat?.participants?.find(p => p._id === m.senderId);
+    const alignRight = user?.role === 'admin' ? (sender?.role === 'doctor') : isMe;
+
     return (
       <motion.div 
         initial={{ opacity: 0, y: 10, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className={`flex ${isMe ? "justify-end" : "justify-start"} mb-6 relative group`}
+        className={`flex ${alignRight ? "justify-end" : "justify-start"} mb-6 relative group`}
       >
         <div className={`max-w-[85%] md:max-w-[70%] transition-colors duration-300 ${
-          isMe 
+          alignRight 
             ? "bg-primary text-white rounded-t-[2rem] rounded-bl-[2rem] shadow-lg shadow-primary/10" 
             : "bg-card text-foreground rounded-t-[2rem] rounded-br-[2rem] border border-border shadow-sm"
         } p-5 relative`}>
-           <p className={`text-[9px] font-black uppercase tracking-[0.2em] mb-2 opacity-50 ${isMe ? "text-right" : "text-left"}`}>
-             {isMe ? "Sent by You" : `${otherParticipant?.fullName || "Recipient"}`}
+           <p className={`text-[9px] font-black uppercase tracking-[0.2em] mb-2 opacity-50 ${alignRight ? "text-right" : "text-left"}`}>
+             {user?.role === 'admin' ? `${sender?.fullName || 'Participant'} (${sender?.role || 'Unknown'})` : isMe ? "Sent by You" : `${otherParticipant?.fullName || "Recipient"}`}
            </p>
            
            {m.type === "text" && <p className="text-sm md:text-base font-medium leading-relaxed">{m.message}</p>}
@@ -195,7 +198,7 @@ export default function ChatPage() {
                     <Maximize2 className="text-white w-8 h-8" />
                  </div>
                </div>
-               <Button variant="outline" size="sm" className={`w-full rounded-xl border-border/20 text-xs h-10 ${isMe ? "bg-white/10 text-white hover:bg-white/20" : "bg-muted/50 text-foreground hover:bg-muted"}`} onClick={() => downloadFile(m.fileUrl, m.fileName)}>
+               <Button variant="outline" size="sm" className={`w-full rounded-xl border-border/20 text-xs h-10 ${alignRight ? "bg-white/10 text-white hover:bg-white/20" : "bg-muted/50 text-foreground hover:bg-muted"}`} onClick={() => downloadFile(m.fileUrl, m.fileName)}>
                  <Download className="w-4 h-4 mr-2" /> Download Image
                </Button>
              </div>
@@ -206,41 +209,34 @@ export default function ChatPage() {
                <video controls className="w-full rounded-2xl bg-black shadow-2xl">
                  <source src={m.fileUrl} />
                </video>
-               <Button variant="outline" size="sm" className={`w-full rounded-xl border-border/20 text-xs h-10 ${isMe ? "bg-white/10 text-white hover:bg-white/20" : "bg-muted/50 text-foreground hover:bg-muted"}`} onClick={() => downloadFile(m.fileUrl, m.fileName)}>
+               <Button variant="outline" size="sm" className={`w-full rounded-xl border-border/20 text-xs h-10 ${alignRight ? "bg-white/10 text-white hover:bg-white/20" : "bg-muted/50 text-foreground hover:bg-muted"}`} onClick={() => downloadFile(m.fileUrl, m.fileName)}>
                  <Download className="w-4 h-4 mr-2" /> Download Video
                </Button>
              </div>
            )}
 
-           {m.type === "pdf" && (
-             <div className={`flex flex-col gap-4 p-4 rounded-2xl border ${isMe ? "bg-white/10 border-white/20" : "bg-muted/30 border-border"}`}>
+            {m.type === "pdf" && (
+             <div className={`flex flex-col gap-4 p-4 rounded-2xl border ${alignRight ? "bg-white/10 border-white/20" : "bg-muted/30 border-border"}`}>
                <div className="flex items-center gap-4">
                  <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center text-white shadow-lg">
                    <FileText className="w-6 h-6" />
                  </div>
                  <div className="flex-1 min-w-0">
-                    <p className={`font-bold text-sm truncate ${isMe ? "text-white" : "text-foreground"}`}>{m.fileName || "document.pdf"}</p>
-                    <p className={`text-[10px] uppercase font-black tracking-widest ${isMe ? "text-white/60" : "text-muted-foreground"}`}>PDF Document</p>
+                    <p className={`font-bold text-sm truncate ${alignRight ? "text-white" : "text-foreground"}`}>{m.fileName || "document.pdf"}</p>
+                    <p className={`text-[10px] uppercase font-black tracking-widest ${alignRight ? "text-white/60" : "text-muted-foreground"}`}>PDF Document</p>
                  </div>
                </div>
                <div className="grid grid-cols-2 gap-2">
-                 <Dialog>
-                   <DialogTrigger asChild>
-                     <Button size="sm" variant="ghost" className={`rounded-xl h-10 text-xs font-bold gap-2 ${isMe ? "text-white hover:bg-white/10" : "text-foreground hover:bg-muted"}`}>
-                       <Maximize2 className="w-4 h-4" /> Open
-                     </Button>
-                   </DialogTrigger>
-                   <DialogContent className="max-w-4xl h-[90vh] rounded-[3rem] overflow-hidden p-0 border-none bg-background">
-                     <iframe src={`${m.fileUrl}#toolbar=0`} className="w-full h-full border-none" title="PDF Viewer" />
-                   </DialogContent>
-                 </Dialog>
+                 <Button size="sm" variant="ghost" className={`rounded-xl h-10 text-xs font-bold gap-2 ${alignRight ? "text-white hover:bg-white/10" : "text-foreground hover:bg-muted"}`} onClick={() => window.open(m.fileUrl, '_blank')}>
+                   <Maximize2 className="w-4 h-4" /> Open (New Tab)
+                 </Button>
                  <Button size="sm" className="rounded-xl h-10 text-xs font-bold gap-2 bg-primary/20 hover:bg-primary/30 text-primary border-none" onClick={() => downloadFile(m.fileUrl, m.fileName)}>
                    <Download className="w-4 h-4" /> Save
                  </Button>
                </div>
              </div>
            )}
-           <span className={`text-[9px] font-black uppercase opacity-40 mt-3 block ${isMe ? "text-right" : "text-left"}`}>
+           <span className={`text-[9px] font-black uppercase opacity-40 mt-3 block ${alignRight ? "text-right" : "text-left"}`}>
              {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
            </span>
         </div>
@@ -260,54 +256,71 @@ export default function ChatPage() {
           <div className="flex items-center gap-5">
             <div className="relative">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-2xl">
-                 {otherParticipant?.fullName?.charAt(0)}
+                 {user?.role === 'admin' ? "A" : otherParticipant?.fullName?.charAt(0)}
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-4 border-card shadow-sm" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-foreground leading-tight tracking-tight">{otherParticipant?.fullName || "Syncing..."}</h2>
+              <h2 className="text-xl font-black text-foreground leading-tight tracking-tight">
+                {user?.role === 'admin' 
+                  ? `${chat?.participants?.find(p => p.role === 'doctor')?.fullName || 'Doctor'} & ${chat?.participants?.find(p => p.role === 'patient')?.fullName || 'Patient'}`
+                  : otherParticipant?.fullName || "Syncing..."}
+              </h2>
               <p className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2 mt-1 tracking-widest">
-                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Secure Healthline
+                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {user?.role === 'admin' ? 'Monitoring Session' : 'Secure Healthline'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
-               onClick={() => initCall('audio')}
-             >
-                <Phone className="w-5 h-5" />
-             </Button>
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
-               onClick={() => initCall('video')}
-             >
-                <VideoIcon className="w-5 h-5" />
-             </Button>
-             
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                   <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all">
-                      <MoreVertical className="w-5 h-5" />
+             {user?.role !== 'admin' ? (
+                <>
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
+                     onClick={() => initCall('audio')}
+                   >
+                      <Phone className="w-5 h-5" />
                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64 p-2 rounded-3xl shadow-2xl border border-border bg-card mt-2 mr-2">
-                   <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer font-bold">
-                      <User className="w-4 h-4 text-muted-foreground" /> Member Profile
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer font-bold">
-                      <Download className="w-4 h-4 text-muted-foreground" /> Media Archive
-                   </DropdownMenuItem>
-                   <DropdownMenuSeparator className="my-2" />
-                   <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer text-destructive hover:bg-destructive/10 font-black uppercase text-[10px] tracking-widest">
-                      <Trash2 className="w-4 h-4" /> Clear Discussion
-                   </DropdownMenuItem>
-                </DropdownMenuContent>
-             </DropdownMenu>
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
+                     onClick={() => initCall('video')}
+                   >
+                      <VideoIcon className="w-5 h-5" />
+                   </Button>
+                   
+                   <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="icon" className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all">
+                            <MoreVertical className="w-5 h-5" />
+                         </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-64 p-2 rounded-3xl shadow-2xl border border-border bg-card mt-2 mr-2">
+                         <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer font-bold">
+                            <User className="w-4 h-4 text-muted-foreground" /> Member Profile
+                         </DropdownMenuItem>
+                         <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer font-bold">
+                            <Download className="w-4 h-4 text-muted-foreground" /> Media Archive
+                         </DropdownMenuItem>
+                         <DropdownMenuSeparator className="my-2" />
+                         <DropdownMenuItem className="rounded-2xl h-12 px-4 gap-3 cursor-pointer text-destructive hover:bg-destructive/10 font-black uppercase text-[10px] tracking-widest">
+                            <Trash2 className="w-4 h-4" /> Clear Discussion
+                         </DropdownMenuItem>
+                      </DropdownMenuContent>
+                   </DropdownMenu>
+                </>
+             ) : (
+                <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   className="rounded-2xl h-12 w-12 hover:bg-muted text-muted-foreground transition-all"
+                   onClick={() => navigate('/admin/chats')}
+                >
+                   <X className="w-5 h-5" />
+                </Button>
+             )}
           </div>
         </motion.header>
 
@@ -332,55 +345,57 @@ export default function ChatPage() {
         </div>
 
         {/* Input Footer */}
-        <footer className="bg-card border border-border rounded-b-[3rem] p-6 shadow-2xl transition-colors duration-300">
-          {preview && (
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="mb-6 p-4 bg-muted/50 rounded-2xl flex items-center justify-between border border-dashed border-border"
-            >
-              <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center text-primary shadow-sm border border-border">
-                    {preview.loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 
-                     preview.type === 'pdf' ? <FileText className="w-6 h-6 text-red-500" /> : 
-                     preview.type === 'video' ? <Video className="w-6 h-6 text-blue-500" /> : 
-                     <ImageIcon className="w-6 h-6" />}
-                 </div>
-                 <div>
-                    <p className="text-sm font-black text-foreground truncate max-w-[200px]">{preview.name}</p>
-                    <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                      {preview.loading ? "Enciphering Payload..." : "Ready for Transmission"}
-                    </p>
-                 </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => setPreview(null)} className="rounded-full">
-                 <X className="w-5 h-5 text-muted-foreground" />
-              </Button>
-            </motion.div>
-          )}
-
-          <form onSubmit={onSend} className="flex items-center gap-4">
-            <div className="flex gap-2">
-              <label className="cursor-pointer group">
-                <Input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,application/pdf" />
-                <div className="w-14 h-14 bg-muted/50 rounded-2xl flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/20">
-                   <ImageIcon className="w-6 h-6" />
+        {user?.role !== 'admin' && (
+          <footer className="bg-card border border-border rounded-b-[3rem] p-6 shadow-2xl transition-colors duration-300">
+            {preview && (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mb-6 p-4 bg-muted/50 rounded-2xl flex items-center justify-between border border-dashed border-border"
+              >
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center text-primary shadow-sm border border-border">
+                      {preview.loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 
+                       preview.type === 'pdf' ? <FileText className="w-6 h-6 text-red-500" /> : 
+                       preview.type === 'video' ? <Video className="w-6 h-6 text-blue-500" /> : 
+                       <ImageIcon className="w-6 h-6" />}
+                   </div>
+                   <div>
+                      <p className="text-sm font-black text-foreground truncate max-w-[200px]">{preview.name}</p>
+                      <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">
+                        {preview.loading ? "Enciphering Payload..." : "Ready for Transmission"}
+                      </p>
+                   </div>
                 </div>
-              </label>
-            </div>
-            <div className="flex-1 relative">
-              <Input 
-                value={msg} 
-                onChange={(e) => setMsg(e.target.value)}
-                placeholder="Synchronize clinical notes..." 
-                className="h-14 rounded-2xl border-border bg-muted/30 pl-6 pr-4 font-bold text-foreground focus:ring-primary/20 focus:bg-card transition-all"
-              />
-            </div>
-            <Button type="submit" size="icon" className="w-14 h-14 rounded-[1.25rem] bg-primary text-white shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all disabled:opacity-30" disabled={!msg.trim() && !preview}>
-               <Send className="w-6 h-6" />
-            </Button>
-          </form>
-        </footer>
+                <Button variant="ghost" size="icon" onClick={() => setPreview(null)} className="rounded-full">
+                   <X className="w-5 h-5 text-muted-foreground" />
+                </Button>
+              </motion.div>
+            )}
+
+            <form onSubmit={onSend} className="flex items-center gap-4">
+              <div className="flex gap-2">
+                <label className="cursor-pointer group">
+                  <Input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,video/*,application/pdf" />
+                  <div className="w-14 h-14 bg-muted/50 rounded-2xl flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/20">
+                     <ImageIcon className="w-6 h-6" />
+                  </div>
+                </label>
+              </div>
+              <div className="flex-1 relative">
+                <Input 
+                  value={msg} 
+                  onChange={(e) => setMsg(e.target.value)}
+                  placeholder="Synchronize clinical notes..." 
+                  className="h-14 rounded-2xl border-border bg-muted/30 pl-6 pr-4 font-bold text-foreground focus:ring-primary/20 focus:bg-card transition-all"
+                />
+              </div>
+              <Button type="submit" size="icon" className="w-14 h-14 rounded-[1.25rem] bg-primary text-white shadow-xl shadow-primary/30 hover:shadow-primary/50 transition-all disabled:opacity-30" disabled={!msg.trim() && !preview}>
+                 <Send className="w-6 h-6" />
+              </Button>
+            </form>
+          </footer>
+        )}
 
         <AnimatePresence>
           {selectedMedia && (

@@ -6,6 +6,7 @@ const prescriptionSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
   medicines: [{
     name: { type: String, required: true },
+    quantity: { type: String },
     dosage: {
       morning: { type: Boolean, default: false },
       noon: { type: Boolean, default: false },

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef } from "react";
+import GlobalCallOverlay from "../chat/GlobalCallOverlay";
 
 const patientNav = [
   { label: "Dashboard", path: "/patient", icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -190,6 +191,7 @@ export default function DashboardLayout({ children, role }) {
 
   return (
     <div className="flex h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden font-medium">
+      <GlobalCallOverlay />
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div

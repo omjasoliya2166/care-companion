@@ -17,12 +17,12 @@ export const ThemeToggle = () => {
       <div className="relative w-6 h-6 flex items-center justify-center">
         <Sun 
           className={`absolute transition-all duration-500 transform ${
-            isDarkMode ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100 text-amber-500'
+            isDarkMode ? 'rotate-0 scale-100 opacity-100 text-amber-500' : 'rotate-90 scale-0 opacity-0'
           }`}
         />
         <Moon 
           className={`absolute transition-all duration-500 transform ${
-            !isDarkMode ? '-rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100 text-indigo-400'
+            !isDarkMode ? 'rotate-0 scale-100 opacity-100 text-indigo-400' : '-rotate-90 scale-0 opacity-0'
           }`}
         />
       </div>
