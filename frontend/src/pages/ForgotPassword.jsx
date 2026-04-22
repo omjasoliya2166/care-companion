@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, Mail } from "lucide-react";
 import api from "@/services/api";
 import { motion } from "framer-motion";
-import logo from "@/assets/Logo.png";
+import logo from "@/assets/logo.png";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
