@@ -23,6 +23,10 @@ export const initSocket = (server) => {
       socket.join(chatId);
     });
 
+    socket.on('join_blog_room', (blogId) => {
+      socket.join(`blog_${blogId}`);
+    });
+
     socket.on('send_message', (data) => {
       socket.to(data.chatId).emit('receive_message', data);
     });

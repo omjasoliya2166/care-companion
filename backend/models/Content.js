@@ -15,6 +15,12 @@ const blogSchema = new mongoose.Schema({
   content: { type: String, required: true },
   image: { type: String, default: '' },
   author: { type: String, default: 'Admin' },
+  comments: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    name: { type: String, required: true },
+    text: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
   createdAt: { type: Date, default: Date.now }
 });
 

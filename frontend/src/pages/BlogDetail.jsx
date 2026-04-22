@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSocket } from "@/contexts/SocketContext";
+import { useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import {
   MessageCircle,
   TrendingUp
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import HeartbeatLoader from "@/components/ui/HeartbeatLoader";
 
 const fallbackBlogs = [
@@ -32,15 +34,23 @@ const fallbackBlogs = [
 export default function BlogDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { user, role } = useAuth();
+  const { on, off, emit } = useSocket();
 
   const [newComment, setNewComment] = useState("");
-  const [localComments, setLocalComments] = useState([
-    { name: "Sumanth", text: "Great article! Very informative for someone trying to balance heart health with a busy schedule.", date: "2 days ago" },
-    { name: "Priya", text: "Are there any specific exercises you recommend for people with desk jobs?", date: "1 week ago" }
-  ]);
+  const [localComments, setLocalComments] = useState([]);
 
-  const { data: blogs, isLoading } = useQuery({
+  // Fetch single blog with comments
+  const { data: blog, isLoading: isBlogLoading, refetch } = useQuery({
+    queryKey: ["blog", id],
+    queryFn: async () => {
+      const response = await api.get(`/content/blogs/${id}`);
+      return response.data;
+    },
+  });
+
+  // Fetch all blogs for sidebar (related posts)
+  const { data: allBlogs } = useQuery({
     queryKey: ["blogs-public"],
     queryFn: async () => {
       try {
@@ -52,6 +62,32 @@ export default function BlogDetail() {
     },
   });
 
+  useEffect(() => {
+    if (blog?.comments) {
+      setLocalComments(blog.comments);
+    }
+  }, [blog]);
+
+  useEffect(() => {
+    if (id) {
+      emit('join_blog_room', id);
+
+      const handleNewComment = (data) => {
+        if (data.blogId === id) {
+          setLocalComments(prev => [data.comment, ...prev]);
+        }
+      };
+
+      on('blog_comment_added', handleNewComment);
+
+      return () => {
+        off('blog_comment_added', handleNewComment);
+      };
+    }
+  }, [id, on, off, emit]);
+
+  const isLoading = isBlogLoading;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -60,8 +96,7 @@ export default function BlogDetail() {
     );
   }
 
-  const blog = (blogs || fallbackBlogs).find((b) => b.id === id || b._id === id);
-  const relatedPosts = (blogs || fallbackBlogs).filter(b => (b.id !== id && b._id !== id)).slice(0, 3);
+  const relatedPosts = (allBlogs || fallbackBlogs).filter(b => (b.id !== id && b._id !== id)).slice(0, 3);
 
   if (!blog) {
     return (
@@ -76,31 +111,77 @@ export default function BlogDetail() {
     );
   }
 
-  const handlePostComment = () => {
+  const handlePostComment = async () => {
     if (!newComment.trim()) return;
     
-    setLocalComments([
-      { name: "Guest User", text: newComment, date: "Just now" },
-      ...localComments
-    ]);
-    setNewComment("");
-    
-    import("sonner").then(({ toast }) => {
-      toast.success("Comment posted successfully!");
-    });
+    try {
+      await api.post(`/content/blogs/${id}/comments`, {
+        name: user?.fullName || "Guest User",
+        text: newComment,
+        userId: user?._id
+      });
+      
+      setNewComment("");
+      
+      import("sonner").then(({ toast }) => {
+        toast.success("Comment posted successfully!");
+      });
+    } catch (error) {
+      import("sonner").then(({ toast }) => {
+        toast.error("Failed to post comment");
+      });
+    }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: blog.title,
-        url: url
-      }).catch(console.error);
-    } else {
-      navigator.clipboard.writeText(url);
+    const shareData = {
+      title: blog?.title || "Health Article",
+      text: `Check out this health article: ${blog?.title}`,
+      url: url
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      console.log("Web Share failed, falling back to clipboard", err);
+    }
+
+    // Fallback: Clipboard API
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        import("sonner").then(({ toast }) => {
+          toast.success("Link copied to clipboard!");
+        });
+        return;
+      }
+    } catch (err) {
+      console.log("Clipboard API failed", err);
+    }
+
+    // Final Fallback: Legacy Textarea
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        import("sonner").then(({ toast }) => {
+          toast.success("Link copied to clipboard!");
+        });
+      } else {
+        throw new Error("Copy command failed");
+      }
+    } catch (err) {
       import("sonner").then(({ toast }) => {
-        toast.success("Link copied to clipboard!");
+        toast.error("Failed to copy link");
       });
     }
   };
@@ -202,7 +283,7 @@ export default function BlogDetail() {
             <div className="mt-12 pt-8 border-t border-border flex flex-wrap items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <Button variant="ghost" className="rounded-full gap-2" onClick={handleComments}>
-                  <MessageCircle className="h-4 w-4" /> 12 Comments
+                  <MessageCircle className="h-4 w-4" /> {localComments.length} Comments
                 </Button>
                 <Button variant="ghost" className="rounded-full gap-2" onClick={handleShare}>
                   <Share2 className="h-4 w-4" /> Share Article
@@ -211,25 +292,33 @@ export default function BlogDetail() {
             </div>
 
             {/* Comments Section */}
-            <div id="comments-section" className="mt-16 pt-16 border-t border-border">
-              <h3 className="text-2xl font-bold mb-8">Article Discussions ({localComments.length})</h3>
-              <div className="bg-card border rounded-3xl p-8 mb-8">
+            <div id="comments-section" className="mt-12 pt-12 border-t border-border">
+              <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-3">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                Article Discussions ({localComments.length})
+              </h3>
+              
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 md:p-6 mb-10 shadow-sm focus-within:shadow-md focus-within:shadow-primary/5 transition-all duration-300"
+              >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
-                    G
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-primary/20">
+                    {user?.fullName?.[0] || "G"}
                   </div>
                   <div className="flex-1">
                     <textarea 
                       placeholder="Add a comment or ask a health question..." 
-                      className="w-full bg-transparent border-none focus:ring-0 text-sm resize-none mb-4"
-                      rows={3}
+                      className="w-full bg-transparent border-none focus:ring-0 text-sm resize-none mb-2 p-0 placeholder:text-muted-foreground/50 outline-none caret-primary"
+                      rows={2}
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                     />
-                    <div className="flex justify-end">
+                    <div className="flex justify-end pt-3 border-t border-border/50">
                       <Button 
                         size="sm" 
-                        className="rounded-xl px-6" 
+                        className="rounded-lg px-5 font-bold shadow-md shadow-primary/10 hover:shadow-primary/20 transition-all h-9" 
                         onClick={handlePostComment}
                         disabled={!newComment.trim()}
                       >
@@ -238,23 +327,36 @@ export default function BlogDetail() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="space-y-8">
-                {localComments.map((c, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-bold text-primary flex-shrink-0">
-                      {c.name[0]}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-sm">{c.name}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{c.date}</span>
+              <div className="space-y-6">
+                <AnimatePresence initial={false}>
+                  {localComments.map((c, i) => (
+                    <motion.div 
+                      key={c._id || i} 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex gap-4 group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/10 flex items-center justify-center font-bold text-primary flex-shrink-0 shadow-sm group-hover:shadow-md transition-all duration-300">
+                        {c.name[0]}
                       </div>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{c.text}</p>
-                    </div>
-                  </div>
-                ))}
+                      <div className="flex-1 pt-0.5">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{c.name}</span>
+                          <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-tight">
+                            {new Date(c.createdAt || c.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="bg-muted/20 group-hover:bg-muted/40 transition-colors p-3.5 md:p-4 rounded-xl rounded-tl-none border border-border/30">
+                          <p className="text-sm text-foreground/80 leading-relaxed">{c.text}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
           </article>

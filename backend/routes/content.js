@@ -2,6 +2,7 @@ import express from 'express';
 import { Service, Blog, FAQ } from '../models/Content.js';
 import mongoose from 'mongoose';
 import { protect, authorize } from '../middleware/auth.js';
+import { getIO } from '../socket.js';
 
 const router = express.Router();
 
@@ -47,6 +48,42 @@ router.get('/blogs', async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
     res.json(blogs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/blogs/:id', async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ message: 'Blog not found' });
+    res.json(blog);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/blogs/:id/comments', async (req, res) => {
+  try {
+    const { name, text, userId } = req.body;
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ message: 'Blog not found' });
+
+    const newComment = {
+      user: userId || null,
+      name: name || "Guest User",
+      text,
+      createdAt: new Date()
+    };
+
+    blog.comments.unshift(newComment);
+    await blog.save();
+
+    // Live Socket Update
+    const io = getIO();
+    io.to(`blog_${req.params.id}`).emit('blog_comment_added', { blogId: req.params.id, comment: newComment });
+
+    res.status(201).json(newComment);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
