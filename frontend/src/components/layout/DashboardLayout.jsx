@@ -16,7 +16,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useCallback } from "react";
 import GlobalCallOverlay from "../chat/GlobalCallOverlay";
-import Logo from "../../assets/Logo.png";
+import logo from "@/assets/logo.png";
 import api from "@/services/api";
 
 const patientNav = [
@@ -84,21 +84,21 @@ function SidebarContent({ navItems, user, role, unreadCount, unreadChatCount, on
         "p-6 border-b border-border flex items-center justify-between transition-all duration-300",
         collapsed && "px-4 justify-center"
       )}>
-        <Link to="/" className={cn(
-          "flex group px-2 w-full text-center",
-          collapsed ? "items-center justify-center" : "flex-col items-center justify-center gap-2"
-        )} onClick={onClose}>
-          <img src={Logo} alt="Logo" className={cn(
-            "transition-transform duration-300 flex-shrink-0 dark:invert",
-            collapsed ? "h-0 w-0" : "h-10 w-32"
-          )} />
+        <Link to="/" className="flex items-center gap-3 group" onClick={onClose}>
+          <motion.img
+            whileHover={{ scale: 1.1 }}
+            src={logo}
+            alt="LIOHN Logo"
+            className={cn("h-10 w-auto object-contain transition-transform duration-300", collapsed && "h-8")}
+          />
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col mt-1"
             >
-              <p className="text-xs font-black uppercase text-primary tracking-widest leading-none drop-shadow-sm">{role} Portal</p>
+              <span className="font-extrabold text-xl tracking-tighter text-foreground uppercase">LIOHN</span>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none">{role} Portal</p>
             </motion.div>
           )}
         </Link>
@@ -291,7 +291,8 @@ export default function DashboardLayout({ children, role }) {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <img src={Logo} alt="Logo" className="h-8 w-auto dark:invert" />
+            <img src={logo} alt="LIOHN Logo" className="h-8 w-auto object-contain" />
+            <span className="font-extrabold text-lg text-foreground uppercase">LIOHN</span>
           </div>
           <ThemeToggle />
         </div>

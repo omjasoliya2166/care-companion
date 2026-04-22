@@ -68,8 +68,8 @@ export default function AdminDashboard() {
     <DashboardLayout role="admin">
       <div className="space-y-10 p-8">
         <header className="flex flex-col md:flex-row items-baseline gap-4">
-          <h1 className="text-4xl font-black text-foreground tracking-tight">Executive <span className="text-primary italic">Summary</span></h1>
-          <p className="text-foreground/80 font-medium">Real-time performance analytics for LIOHNS.</p>
+          <h1 className="text-4xl font-black text-foreground tracking-tight">Executive <span className="text-primary italic">Summary</span> 📊</h1>
+          <p className="text-foreground/80 font-medium">Real-time performance analytics for LIOHN.</p>
         </header>
 
         {/* Metrics Grid */}

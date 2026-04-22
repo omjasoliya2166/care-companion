@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Camera, X, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import Logo from "../assets/Logo.png";
+import logo from "@/assets/logo.png";
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -72,8 +72,13 @@ export default function Register() {
         className="w-full max-w-md z-10"
       >
         <div className="text-center mb-6">
-          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
-            <img src={Logo} alt="LIOHNS Logo" className="h-12 w-auto shadow-lg dark:invert transition-transform duration-300 group-hover:scale-105" />
+          <Link to="/" className="inline-flex flex-col items-center gap-2 mb-2 group">
+            <motion.img
+              whileHover={{ scale: 1.05 }}
+              src={logo}
+              alt="LIOHNS Logo"
+              className="h-24 w-auto object-contain"
+            />
           </Link>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Join our healthcare network today</p>
         </div>

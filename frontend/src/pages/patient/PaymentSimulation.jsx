@@ -69,7 +69,7 @@ export default function PaymentSimulation() {
               <CreditCard className="w-8 h-8" />
             </div>
             <CardTitle className="text-2xl font-black italic tracking-tight">SafePay <span className="text-white/70">Gateway</span></CardTitle>
-            <p className="text-white/60 text-sm font-bold uppercase tracking-widest mt-2">LIOHNS Secure Payment</p>
+            <p className="text-white/60 text-sm font-bold uppercase tracking-widest mt-2">LIOHN Secure Payment</p>
           </CardHeader>
 
           <CardContent className="p-10 space-y-8">

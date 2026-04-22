@@ -29,7 +29,7 @@ export default function DoctorBilling() {
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(22);
       pdf.setFont("helvetica", "bold");
-      pdf.text("LIOHNS Care Invoice", pageWidth / 2, 18, { align: "center" });
+      pdf.text("LIOHN Care Invoice", pageWidth / 2, 18, { align: "center" });
       
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "normal");
@@ -76,7 +76,7 @@ export default function DoctorBilling() {
       pdf.setDrawColor(226, 232, 240);
       pdf.line(15, 165, pageWidth - 15, 165);
       pdf.setFontSize(7);
-      pdf.text("Thank you for choosing LIOHNS Care.", pageWidth / 2, 172, { align: "center" });
+      pdf.text("Thank you for choosing LIOHN Care.", pageWidth / 2, 172, { align: "center" });
 
       const blob = pdf.output('blob');
       const blobUrl = URL.createObjectURL(blob);

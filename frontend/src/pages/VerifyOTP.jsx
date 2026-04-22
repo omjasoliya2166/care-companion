@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Heart, KeyRound, Timer } from "lucide-react";
 import api from "@/services/api";
 import { motion } from "framer-motion";
-import Logo from "../assets/Logo.png";
+import logo from "@/assets/logo.png";
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState("");
@@ -81,8 +81,13 @@ export default function VerifyOTP() {
         className="w-full max-w-md z-10"
       >
         <div className="text-center mb-4">
-          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
-            <img src={Logo} alt="LIOHNS Logo" className="h-12 w-auto shadow-lg dark:invert transition-transform duration-300 group-hover:scale-105" />
+          <Link to="/" className="inline-flex flex-col items-center gap-2 mb-2 group">
+            <motion.img
+              whileHover={{ scale: 1.05 }}
+              src={logo}
+              alt="LIOHNS Logo"
+              className="h-24 w-auto object-contain"
+            />
           </Link>
         </div>
 

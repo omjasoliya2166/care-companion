@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Phone, Heart } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
-import Logo from "../../assets/Logo.png"
+import logo from "@/assets/logo.png";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -57,7 +57,13 @@ export default function Navbar() {
     >
       <div className="container mx-auto px-4 flex items-center justify-between h-20">
         <a href="/" onClick={(e) => handleNavClick(e, "hero")} title="Home" className="flex items-center gap-2 group cursor-pointer">
-          <img src={Logo} alt="LIOHNS Logo" className="h-10 w-auto shadow-sm dark:invert group-hover:scale-105 transition-transform duration-300" />
+          <motion.img
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            src={logo}
+            alt="LIOHNS Logo"
+            className="h-20 w-auto object-contain"
+          />
         </a>
 
         <div className="hidden md:flex items-center gap-8">

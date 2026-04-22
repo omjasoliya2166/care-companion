@@ -1,6 +1,6 @@
 import { Heart, Phone, Mail, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
-import Logo from "../../assets/Logo.png";
+import logo from "@/assets/logo.png";
 
 const footerColumnVariant = {
   hidden: { opacity: 0, y: 30 },
@@ -21,9 +21,14 @@ export default function Footer() {
           viewport={{ once: true, amount: 0.2 }}
           className="grid md:grid-cols-4 gap-8"
         >
-          <motion.div custom={0} variants={footerColumnVariant}>
-            <div className="flex items-center gap-3 mb-4">
-              <img src={Logo} alt="LIOHNS Logo" className="h-10 w-auto shadow-sm dark:invert" />
+          <motion.div custom={0} variants={footerColumnVariant} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <motion.img
+                whileHover={{ scale: 1.05 }}
+                src={logo}
+                alt="LIOHN Logo"
+                className="h-16 w-auto object-contain"
+              />
             </div>
             <p className="text-sm text-foreground/70">
               Advanced Super Specialty Care for ENT, Neurology, Neurosurgery, Oncosurgery, Opthalmology, Dental sciences, Dermatology, Plastic Surgery, Psychiatry, Pulmonary and More...
@@ -63,7 +68,7 @@ export default function Footer() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="border-t border-border mt-8 pt-6 text-center text-sm text-foreground/60 origin-center"
         >
-          © {new Date().getFullYear()} LIOHNS Hospital. All rights reserved.
+          © {new Date().getFullYear()} LIOHN Hospital. All rights reserved.
         </motion.div>
       </div>
     </footer>

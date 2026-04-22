@@ -51,7 +51,7 @@ export default function PatientPrescriptions() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-foreground">My Prescriptions</h1>
-            <p className="text-muted-foreground text-sm mt-1">Your complete pharmaceutical history from LIOHNS Care</p>
+            <p className="text-muted-foreground text-sm mt-1">Your complete pharmaceutical history from LIOHN Care</p>
           </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />

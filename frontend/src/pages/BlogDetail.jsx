@@ -249,7 +249,8 @@ export default function BlogDetail() {
           <article className="flex-1">
             <div className="prose prose-slate lg:prose-xl dark:prose-invert max-w-none">
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 font-medium italic border-l-4 border-primary pl-6">
-                LIOHNS Care brings you the latest medical insights to help you lead a healthier, more vibrant life. 
+                LIOHN Care brings you the latest medical insights to help you lead a healthier, more vibrant life. 
+
                 Our team of specialists curates this content to ensure you have access to reliable health education.
               </p>
               
@@ -274,7 +275,7 @@ export default function BlogDetail() {
                   </li>
                   <li className="flex items-start gap-3">
                     <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                    <span>Always consult with a LIOHNS specialist for personalized medical advice.</span>
+                    <span>Always consult with a LIOHN specialist for personalized medical advice.</span>
                   </li>
                 </ul>
               </div>

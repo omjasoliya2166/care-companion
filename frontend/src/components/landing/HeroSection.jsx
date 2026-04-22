@@ -87,7 +87,7 @@ export default function HeroSection({ id }) {
                 </motion.div>
               )}
 
-              {role !== 'doctor' && 
+              {role !== 'doctor' && (
                 <motion.div
                   animate={{
                     background: [
@@ -119,7 +119,7 @@ export default function HeroSection({ id }) {
                     <span className="relative z-10 font-bold tracking-tight">Emergency</span>
                   </Button>
                 </motion.div>
-              }
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/10">

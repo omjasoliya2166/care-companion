@@ -140,8 +140,18 @@ export const handleFileUpload = async (req, res) => {
       ? 'pdf' 
       : req.file.mimetype.split('/')[0];
 
+    // Cloudinary returns the URL in path or secure_url depending on setup
+    // With multer-storage-cloudinary, it's usually in req.file.path
+    let fileUrl = req.file.path;
+    
+    // If it's a local file path (doesn't start with http), make it a proper relative URL for static serving
+    if (fileUrl && !fileUrl.startsWith('http')) {
+      // Normalize slashes and ensure it starts with /
+      fileUrl = `/${fileUrl.replace(/\\/g, '/')}`;
+    }
+
     res.json({
-      url: req.file.path, // multer-storage-cloudinary maps secure_url or url to path
+      url: fileUrl,
       name: req.file.originalname,
       type: type
     });

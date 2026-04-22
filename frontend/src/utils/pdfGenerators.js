@@ -15,7 +15,7 @@ export const generatePrescriptionPDF = (presc) => {
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(26);
     pdf.setFont("helvetica", "bold");
-    pdf.text("LIOHNS Care Hospital", pageWidth / 2, 18, { align: "center" });
+    pdf.text("LIOHN Care Hospital", pageWidth / 2, 18, { align: "center" });
     
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
@@ -150,7 +150,7 @@ export const generatePrescriptionPDF = (presc) => {
     pdf.setTextColor(148, 163, 184);
     pdf.setFontSize(8);
     pdf.setFont("helvetica", "normal");
-    pdf.text("This is an electronically generated record from LIOHNS Care Hospital Management System.", pageWidth / 2, footerY + 2, { align: "center" });
+    pdf.text("This is an electronically generated record from LIOHN Care Hospital Management System.", pageWidth / 2, footerY + 2, { align: "center" });
     pdf.text("Verification Code: " + presc._id.toUpperCase(), pageWidth / 2, footerY + 7, { align: "center" });
 
     const blob = pdf.output('blob');
@@ -179,7 +179,7 @@ export const generateInvoicePDF = ({
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(22);
     pdf.setFont("helvetica", "bold");
-    pdf.text("LIOHNS Care Invoice", pageWidth / 2, 18, { align: "center" });
+    pdf.text("LIOHN Care Invoice", pageWidth / 2, 18, { align: "center" });
     
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
@@ -229,7 +229,7 @@ export const generateInvoicePDF = ({
     pdf.setDrawColor(226, 232, 240);
     pdf.line(15, 165, pageWidth - 15, 165);
     pdf.setFontSize(7);
-    pdf.text("Thank you for choosing LIOHNS Care.", pageWidth / 2, 172, { align: "center" });
+    pdf.text("Thank you for choosing LIOHN Care.", pageWidth / 2, 172, { align: "center" });
 
     const blob = pdf.output('blob');
     const blobUrl = URL.createObjectURL(blob);
